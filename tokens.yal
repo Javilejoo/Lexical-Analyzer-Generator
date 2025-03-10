@@ -1,0 +1,24 @@
+{ 
+import re
+}
+
+let digit = ['0'-'9']
+let letter = ['a'-'z' 'A'-'Z']
+
+rule gettoken =
+  [' ' '\t' '\n'] { pass }
+| "if" { return "IF" }
+| "else" { return "ELSE" }
+| digit+ { return "NUMBER" }
+| letter (letter | digit)* { return "IDENTIFIER" }
+| '+' { return "PLUS" }
+| '-' { return "MINUS" }
+| '*' { return "TIMES" }
+| '/' { return "DIV" }
+| '(' { return "LPAREN" }
+| ')' { return "RPAREN" }
+| eof { raise("End of input") }
+
+{ 
+print("Lexical analysis done!")
+}
