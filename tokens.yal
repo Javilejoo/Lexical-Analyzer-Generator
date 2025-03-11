@@ -1,7 +1,7 @@
 { 
 import re
 }
-
+let delim = [' ''\t''\n']
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
 
