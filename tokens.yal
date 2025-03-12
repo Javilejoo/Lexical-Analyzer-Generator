@@ -1,5 +1,5 @@
 { 
-import re
+  
 }
 let delim = [' ''\t''\n']
 let digit = ['0'-'9']
