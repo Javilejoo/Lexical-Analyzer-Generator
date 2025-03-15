@@ -89,18 +89,16 @@ def extraer_ultima_seccion(texto, inicio, fin):
 
 def extraer_definiciones(texto):
     definiciones = []
-    lineas = texto.split('\n')
-    
-    for linea in lineas:
+    for linea in texto.split('\n'):
         linea = linea.strip()
         if linea.startswith('let'):
-            # Extraer el identificador y la expresión regular
-            partes = linea[3:].strip().split('=', 1)
+            partes = linea[3:].split('=', 1)
             if len(partes) == 2:
                 ident = partes[0].strip()
-                expr = partes[1].strip()
-                definiciones.append((ident, expr))
-    
+                expr = partes[1].split('(*')[0].strip()  # Ignorar comentarios
+                if expr.startswith('[') and expr.endswith(']'):
+                    elementos = parse_char_set(expr)
+                    definiciones.append((ident, elementos))
     return definiciones
 
 def extraer_reglas(texto):
@@ -167,8 +165,69 @@ def extraer_reglas(texto):
     
     return reglas
 
+def parse_char_set(expr):
+    expr = expr.strip()[1:-1]
+    elements = []
+    i = 0
+    n = len(expr)
+    
+    escape_map = {'t': '\t', 'n': '\n', 'r': '\r', "'": "'", '\\': '\\'}
+    
+    while i < n:
+        if expr[i] == "'":
+            i += 1
+            char = ""
+            while i < n and expr[i] != "'":
+                if expr[i] == "\\":
+                    i += 1
+                    char += escape_map.get(expr[i], expr[i])
+                else:
+                    char += expr[i]
+                i += 1
+            i += 1
+            if i < n and expr[i] == '-':
+                i += 2
+                end_char = ""
+                while i < n and expr[i] != "'":
+                    if expr[i] == "\\":
+                        i += 1
+                        end_char += escape_map.get(expr[i], expr[i])
+                    else:
+                        end_char += expr[i]
+                    i += 1
+                i += 1
+                elements.append(('range', char, end_char))
+            else:
+                elements.append(('char', char))
+        else:
+            i += 1
+    
+    return elements
+
+def expand_definitions(definiciones):
+    expanded = {}
+    for nombre, elementos in definiciones:
+        tokens = []
+        for elem in elementos:
+            if elem[0] == "char":
+                # Convertir caracteres especiales a secuencias de escape
+                char = elem[1]
+                if char == '\t':
+                    tokens.append('\\t')
+                elif char == '\n':
+                    tokens.append('\\n')
+                elif char == ' ':
+                    tokens.append(' ')
+                else:
+                    tokens.append(char)
+            elif elem[0] == "range":
+                inicio, fin = elem[1], elem[2]
+                tokens.append("|".join(chr(c) for c in range(ord(inicio), ord(fin) + 1)))
+        expanded[nombre] = f"({'|'.join(tokens)})"
+    return expanded
+
 # Prueba con el archivo yalex
-archivo_yal = "tokens.yal"
+archivo_yal = "yalex.yal"
 datos = leer_yalex(archivo_yal)
 
 # Mostrar resultados
@@ -180,3 +239,13 @@ print("\nREGLAS:")
 for patron, accion in datos["reglas"]:
     print(f"{patron} -> {accion}")
 print("\nTRAILER:\n", datos["trailer"])
+
+# Expandir definiciones
+def_expandidas = expand_definitions(datos["definiciones"])
+print("\nDEFINICIONES EXPANDIDAS:")  # Mostrar definiciones expandidas
+for k, v in def_expandidas.items():
+    print(f"{k} = {v}")
+
+
+
+
