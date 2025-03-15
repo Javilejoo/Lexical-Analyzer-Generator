@@ -226,6 +226,19 @@ def expand_definitions(definiciones):
         expanded[nombre] = f"({'|'.join(tokens)})"
     return expanded
 
+def clasificar_entrypoints(reglas):
+    literales = []
+    expresiones = []
+    
+    for patron, _ in reglas:  # Solo tomamos el patrón, ignoramos la acción
+        patron = patron.strip()
+        if patron.startswith("'") and patron.endswith("'"):
+            literales.append(patron[1:-1])  # Quitar comillas
+        else:
+            expresiones.append(patron)
+    
+    return literales, expresiones
+
 # Prueba con el archivo yalex
 archivo_yal = "yalex.yal"
 datos = leer_yalex(archivo_yal)
@@ -245,6 +258,11 @@ def_expandidas = expand_definitions(datos["definiciones"])
 print("\nDEFINICIONES EXPANDIDAS:")  # Mostrar definiciones expandidas
 for k, v in def_expandidas.items():
     print(f"{k} = {v}")
+
+# Clasificar entrypoints
+literales, expresiones = clasificar_entrypoints(datos["reglas"])
+print("\nLITERALES:", literales)
+print("\nEXPRESIONES:", expresiones)
 
 
 
