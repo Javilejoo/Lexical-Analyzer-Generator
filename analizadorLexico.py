@@ -239,8 +239,69 @@ def clasificar_entrypoints(reglas):
     
     return literales, expresiones
 
-# Prueba con el archivo yalex
-archivo_yal = "yalex.yal"
+def expandir_reglas(reglas, definiciones_expandidas):
+    expanded_rules = []
+    for patron, accion in reglas:
+        tokens = []
+        current_token = []
+        in_quote = False
+        quote_char = None  # Tipo de comilla (' o ")
+
+        # Tokenización del patrón
+        for char in patron:
+            if char in {'"', '\''}:
+                if in_quote and char == quote_char:
+                    # Fin de literal
+                    tokens.append(f"'{''.join(current_token)}'")  # Forzar comillas simples
+                    current_token = []
+                    in_quote = False
+                    quote_char = None
+                else:
+                    # Inicio de literal
+                    in_quote = True
+                    quote_char = char
+            elif in_quote:
+                current_token.append(char)
+            elif char in ('+', '*', '?', '|', '(', ')'):
+                if current_token:
+                    tokens.append(''.join(current_token))
+                    current_token = []
+                tokens.append(char)
+            elif char.isspace():
+                if current_token:
+                    tokens.append(''.join(current_token))
+                    current_token = []
+            else:
+                current_token.append(char)
+
+        if current_token:
+            tokens.append(''.join(current_token))
+
+        # Procesamiento de tokens
+        expanded_tokens = []
+        for token in tokens:
+            if token.startswith("'") and token.endswith("'"):
+                contenido = token[1:-1]
+                if contenido in ('+', '-', '*', '/', '(', ')'):  # Operadores
+                    expanded_tokens.append(f"('{contenido}')")  # Comillas simples
+                else:  # Palabras reservadas
+                    expanded_tokens.append(f"({contenido})")  # Sin comillas
+            elif token in definiciones_expandidas:
+                expanded_tokens.append(definiciones_expandidas[token])
+            elif token in ('+', '*', '?'):
+                if expanded_tokens:
+                    base = expanded_tokens.pop()
+                    expanded_tokens.append(f"{base}{token}")
+            else:
+                expanded_tokens.append(token)
+
+        # Unir tokens
+        expanded_pattern = ''.join(expanded_tokens)
+        expanded_rules.append((expanded_pattern, accion))
+    
+    return expanded_rules
+
+archivo_yal = "tokens.yal"
 datos = leer_yalex(archivo_yal)
 
 # Mostrar resultados
@@ -253,17 +314,32 @@ for patron, accion in datos["reglas"]:
     print(f"{patron} -> {accion}")
 print("\nTRAILER:\n", datos["trailer"])
 
-# Expandir definiciones
-def_expandidas = expand_definitions(datos["definiciones"])
-print("\nDEFINICIONES EXPANDIDAS:")  # Mostrar definiciones expandidas
-for k, v in def_expandidas.items():
-    print(f"{k} = {v}")
+
 
 # Clasificar entrypoints
 literales, expresiones = clasificar_entrypoints(datos["reglas"])
 print("\nLITERALES:", literales)
 print("\nEXPRESIONES:", expresiones)
 
+# Después de leer los datos del archivo YAL
+def_expandidas = expand_definitions(datos["definiciones"])
+reglas_expandidas = expandir_reglas(datos["reglas"], def_expandidas)
+
+# Mostrar reglas expandidas
+print("\nREGLAS EXPANDIDAS:")
+for patron, accion in reglas_expandidas:
+    print(f"{patron} -> {accion}")
 
 
+expresiones = []
 
+# 1️⃣ Definiciones (ya vienen entre paréntesis)
+expresiones.extend(def_expandidas.values())
+
+# 2️⃣ Reglas expandidas
+for patron, _ in reglas_expandidas:
+    expresiones.append(patron)  # Ya están formateadas correctamente
+
+# 3️⃣ Guardar
+with open("expresion_infix.txt", "w", encoding="utf-8") as f:
+    f.write(f"{'|'.join(expresiones)}\n")
