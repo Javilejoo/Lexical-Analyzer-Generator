@@ -89,18 +89,16 @@ def extraer_ultima_seccion(texto, inicio, fin):
 
 def extraer_definiciones(texto):
     definiciones = []
-    lineas = texto.split('\n')
-    
-    for linea in lineas:
+    for linea in texto.split('\n'):
         linea = linea.strip()
         if linea.startswith('let'):
-            # Extraer el identificador y la expresión regular
-            partes = linea[3:].strip().split('=', 1)
+            partes = linea[3:].split('=', 1)
             if len(partes) == 2:
                 ident = partes[0].strip()
-                expr = partes[1].strip()
-                definiciones.append((ident, expr))
-    
+                expr = partes[1].split('(*')[0].strip()  # Ignorar comentarios
+                if expr.startswith('[') and expr.endswith(']'):
+                    elementos = parse_char_set(expr)
+                    definiciones.append((ident, elementos))
     return definiciones
 
 def extraer_reglas(texto):
@@ -167,7 +165,142 @@ def extraer_reglas(texto):
     
     return reglas
 
-# Prueba con el archivo yalex
+def parse_char_set(expr):
+    expr = expr.strip()[1:-1]
+    elements = []
+    i = 0
+    n = len(expr)
+    
+    escape_map = {'t': '\t', 'n': '\n', 'r': '\r', "'": "'", '\\': '\\'}
+    
+    while i < n:
+        if expr[i] == "'":
+            i += 1
+            char = ""
+            while i < n and expr[i] != "'":
+                if expr[i] == "\\":
+                    i += 1
+                    char += escape_map.get(expr[i], expr[i])
+                else:
+                    char += expr[i]
+                i += 1
+            i += 1
+            if i < n and expr[i] == '-':
+                i += 2
+                end_char = ""
+                while i < n and expr[i] != "'":
+                    if expr[i] == "\\":
+                        i += 1
+                        end_char += escape_map.get(expr[i], expr[i])
+                    else:
+                        end_char += expr[i]
+                    i += 1
+                i += 1
+                elements.append(('range', char, end_char))
+            else:
+                elements.append(('char', char))
+        else:
+            i += 1
+    
+    return elements
+
+def expand_definitions(definiciones):
+    expanded = {}
+    for nombre, elementos in definiciones:
+        tokens = []
+        for elem in elementos:
+            if elem[0] == "char":
+                # Convertir caracteres especiales a secuencias de escape
+                char = elem[1]
+                if char == '\t':
+                    tokens.append('\\t')
+                elif char == '\n':
+                    tokens.append('\\n')
+                elif char == ' ':
+                    tokens.append(' ')
+                else:
+                    tokens.append(char)
+            elif elem[0] == "range":
+                inicio, fin = elem[1], elem[2]
+                tokens.append("|".join(chr(c) for c in range(ord(inicio), ord(fin) + 1)))
+        expanded[nombre] = f"({'|'.join(tokens)})"
+    return expanded
+
+def clasificar_entrypoints(reglas):
+    literales = []
+    expresiones = []
+    
+    for patron, _ in reglas:  # Solo tomamos el patrón, ignoramos la acción
+        patron = patron.strip()
+        if patron.startswith("'") and patron.endswith("'"):
+            literales.append(patron[1:-1])  # Quitar comillas
+        else:
+            expresiones.append(patron)
+    
+    return literales, expresiones
+
+def expandir_reglas(reglas, definiciones_expandidas):
+    expanded_rules = []
+    for patron, accion in reglas:
+        tokens = []
+        current_token = []
+        in_quote = False
+        quote_char = None  # Tipo de comilla (' o ")
+
+        # Tokenización del patrón
+        for char in patron:
+            if char in {'"', '\''}:
+                if in_quote and char == quote_char:
+                    # Fin de literal
+                    tokens.append(f"'{''.join(current_token)}'")  # Forzar comillas simples
+                    current_token = []
+                    in_quote = False
+                    quote_char = None
+                else:
+                    # Inicio de literal
+                    in_quote = True
+                    quote_char = char
+            elif in_quote:
+                current_token.append(char)
+            elif char in ('+', '*', '?', '|', '(', ')'):
+                if current_token:
+                    tokens.append(''.join(current_token))
+                    current_token = []
+                tokens.append(char)
+            elif char.isspace():
+                if current_token:
+                    tokens.append(''.join(current_token))
+                    current_token = []
+            else:
+                current_token.append(char)
+
+        if current_token:
+            tokens.append(''.join(current_token))
+
+        # Procesamiento de tokens
+        expanded_tokens = []
+        for token in tokens:
+            if token.startswith("'") and token.endswith("'"):
+                contenido = token[1:-1]
+                if contenido in ('+', '-', '*', '/', '(', ')'):  # Operadores
+                    expanded_tokens.append(f"('{contenido}')")  # Comillas simples
+                else:  # Palabras reservadas
+                    expanded_tokens.append(f"({contenido})")  # Sin comillas
+            elif token in definiciones_expandidas:
+                expanded_tokens.append(definiciones_expandidas[token])
+            elif token in ('+', '*', '?'):
+                if expanded_tokens:
+                    base = expanded_tokens.pop()
+                    expanded_tokens.append(f"{base}{token}")
+            else:
+                expanded_tokens.append(token)
+
+        # Unir tokens
+        expanded_pattern = ''.join(expanded_tokens)
+        expanded_rules.append((expanded_pattern, accion))
+    
+    return expanded_rules
+
 archivo_yal = "tokens.yal"
 datos = leer_yalex(archivo_yal)
 
@@ -180,3 +313,33 @@ print("\nREGLAS:")
 for patron, accion in datos["reglas"]:
     print(f"{patron} -> {accion}")
 print("\nTRAILER:\n", datos["trailer"])
+
+
+
+# Clasificar entrypoints
+literales, expresiones = clasificar_entrypoints(datos["reglas"])
+print("\nLITERALES:", literales)
+print("\nEXPRESIONES:", expresiones)
+
+# Después de leer los datos del archivo YAL
+def_expandidas = expand_definitions(datos["definiciones"])
+reglas_expandidas = expandir_reglas(datos["reglas"], def_expandidas)
+
+# Mostrar reglas expandidas
+print("\nREGLAS EXPANDIDAS:")
+for patron, accion in reglas_expandidas:
+    print(f"{patron} -> {accion}")
+
+
+expresiones = []
+
+# 1️⃣ Definiciones (ya vienen entre paréntesis)
+expresiones.extend(def_expandidas.values())
+
+# 2️⃣ Reglas expandidas
+for patron, _ in reglas_expandidas:
+    expresiones.append(patron)  # Ya están formateadas correctamente
+
+# 3️⃣ Guardar
+with open("expresion_infix.txt", "w", encoding="utf-8") as f:
+    f.write(f"{'|'.join(expresiones)}\n")
