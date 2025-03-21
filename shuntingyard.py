@@ -76,13 +76,8 @@ def ShuntingYard(expresion):
 
 
 def convert_infix_to_postfix(expresion):
+    expresion = expresion.replace('\\t', '\t').replace('\\n', '\n')
     expanded_expression = expand_operators(expresion)
-    return ShuntingYard(expanded_expression)
-
-
-if __name__ == '__main__':
-# leer expresiones_modificadas.txt, y hacerle shuttingyard
-    with open('expresiones_modificadas.txt') as file:
-        expresiones = file.readlines()
-        for expresion in expresiones:
-            print(convert_infix_to_postfix(expresion.strip()))
+    postfix = ShuntingYard(expanded_expression)
+    print(postfix)
+    return postfix
