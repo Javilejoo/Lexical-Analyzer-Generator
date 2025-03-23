@@ -32,19 +32,43 @@ class Stack:
 def build_expression_tree(postfix_expr):
     stack = Stack()
     
-    for char in postfix_expr:
-        if char in {'|', '.', '*'}:
-            if char in {'|', '.'}:
+    # Tokenizar la expresión postfija manualmente
+    tokens = []
+    i = 0
+    while i < len(postfix_expr):
+        char = postfix_expr[i]
+        if char == '\\' and (i + 1) < len(postfix_expr):
+            tokens.append(char + postfix_expr[i+1])  # Agrupar '\' y el siguiente carácter
+            i += 2
+        else:
+            tokens.append(char)
+            i += 1
+    
+    # Construir el árbol con tokens correctos
+    for token in tokens:
+        if token in {'|', '.', '*'}:
+            if token in {'|', '.'}:
                 right = stack.pop()
                 left = stack.pop()
-                node = Node(char, left, right)
+                node = Node(token, left, right)
             else:
                 operand = stack.pop()
-                node = Node(char, operand, None)
+                node = Node(token, operand, None)
         else:
-            node = Node(char)
+            # Manejar caracteres escapados y espacios
+            if len(token) == 2 and token[0] == '\\':
+                escaped_char = token[1]
+                if escaped_char == 'n':
+                    node = Node('\n')
+                elif escaped_char == 't':
+                    node = Node('\t')
+                else:
+                    node = Node(escaped_char)
+            elif token == ' ':
+                node = Node(' ')
+            else:
+                node = Node(token)
         
         stack.push(node)
     
     return stack.pop()
-

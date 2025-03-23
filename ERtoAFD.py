@@ -176,7 +176,7 @@ def simular_afd(afd, cadena):
     Returns:
         bool: True si la cadena es aceptada, False en caso contrario
     """
-    cadena = cadena.replace('\\t', '\t').replace('\\n', '\n')
+    cadena = cadena.replace('\\t', '\t').replace('\\n', '\n').replace(' ', ' ')
     # Verificar símbolos no válidos
     for simbolo in cadena:
         if simbolo not in afd['alfabeto']:

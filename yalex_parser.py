@@ -189,58 +189,93 @@ def expand_definitions_recursivo(definiciones):
 
     return expanded
 
+def extraer_literal(cadena, indice):
+    """
+    Extrae un literal encerrado en comillas simples desde la posición 'indice' en 'cadena'.
+    Interpreta secuencias de escape como \t y \n.
+    Retorna el literal completo y la posición siguiente a la comilla de cierre.
+    """
+    literal = ''
+    i = indice + 1  # Saltar la comilla inicial
+    while i < len(cadena):
+        if cadena[i] == '\\':  # Secuencia de escape
+            i += 1
+            if i < len(cadena):
+                if cadena[i] == 't':
+                    literal += '\t'
+                elif cadena[i] == 'n':
+                    literal += '\n'
+                else:
+                    literal += cadena[i]
+                i += 1
+        elif cadena[i] == "'":
+            return literal, i + 1
+        else:
+            literal += cadena[i]
+            i += 1
+    raise ValueError("Literal entre comillas simples no cerrado correctamente.")
+
+def extraer_literal_doble(cadena, indice):
+    """
+    Extrae un literal encerrado en comillas dobles desde la posición 'indice' en 'cadena'.
+    Maneja secuencias de escape de forma similar.
+    """
+    literal = ''
+    i = indice + 1  # Saltar la comilla doble inicial
+    while i < len(cadena):
+        if cadena[i] == '\\':
+            i += 1
+            if i < len(cadena):
+                if cadena[i] == 't':
+                    literal += '\t'
+                elif cadena[i] == 'n':
+                    literal += '\n'
+                else:
+                    literal += cadena[i]
+                i += 1
+        elif cadena[i] == '"':
+            return literal, i + 1
+        else:
+            literal += cadena[i]
+            i += 1
+    raise ValueError("Literal entre comillas dobles no cerrado correctamente.")
+
 def expand_range(rango):
-    # Mantener cada grupo de '' como token o procesar \s, \t, \n
+    """
+    Procesa una cadena de rango, por ejemplo: [' ''\t''\n'], extrayendo cada literal
+    completo y luego uniéndolos con '|' entre paréntesis.
+    """
     elementos = []
     i = 0
     while i < len(rango):
         if rango[i] == "'":
-            i += 1
-            char = ''
-            while i < len(rango) and rango[i] != "'":
-                char += rango[i]
-                i += 1
-            elementos.append(char)
-            i += 1  # Saltar la comilla final
-        elif rango[i] == '"':  # Soporte para ["\s\t\n"]
-            i += 1
-            while i < len(rango) and rango[i] != '"':
-                if rango[i] == '\\':
-                    i += 1
-                    if i < len(rango):
-                        if rango[i] == 's':
-                            elementos.append(' ')
-                        elif rango[i] == 't':
-                            elementos.append('\\t')
-                        elif rango[i] == 'n':
-                            elementos.append('\\n')
-                        else:
-                            elementos.append(rango[i])
-                        i += 1
-                else:
-                    elementos.append(rango[i])
-                    i += 1
-            i += 1  # Saltar la comilla final
+            # Extraer literal entre comillas simples
+            literal, i = extraer_literal(rango, i)
+            elementos.append(literal)
+        elif rango[i] == '"':
+            # Extraer literal entre comillas dobles
+            literal, i = extraer_literal_doble(rango, i)
+            elementos.append(literal)
         elif rango[i] == '-':
-            # Maneja el rango 'A'-'Z'
-            start = elementos.pop()
-            i += 1
-            if rango[i] == "'":
+            # Maneja rangos, por ejemplo: 'A'-'Z'
+            if elementos:
+                start = elementos.pop()
+                i += 1  # Saltar el guion
+                if i < len(rango) and rango[i] == "'":
+                    end_literal, i = extraer_literal(rango, i)
+                    for c in range(ord(start), ord(end_literal) + 1):
+                        elementos.append(chr(c))
+            else:
                 i += 1
-                end = ''
-                while i < len(rango) and rango[i] != "'":
-                    end += rango[i]
-                    i += 1
-                i += 1  # cerrar '
-                # expandir rango
-                for c in range(ord(start), ord(end) + 1):
-                    elementos.append(chr(c))
         else:
             i += 1
+
+    # Une los elementos usando '|' y protege los caracteres especiales
     return '(' + '|'.join(map(escape_specials, elementos)) + ')'
 
+
 def escape_specials(char):
-    if char == ' ':
+    if char == "' '":
         return "' '"
     if char == '\\t':
         return '\\t'
