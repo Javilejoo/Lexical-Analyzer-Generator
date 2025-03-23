@@ -1,5 +1,8 @@
 def leerER(file):
-    with open(file, "r", encoding='utf=8') as f:
-        for line in f:
-            print('La expresion regular es: ',line)
-        return line
+    with open(file, 'r') as f:
+        contenido = f.read()
+    return contenido
+    
+
+
+print(repr(leerER("output/infix_final.txt"))) 

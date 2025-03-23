@@ -19,8 +19,6 @@ def expand_operators(expression):
     while i < len(expression):
         char = expression[i]
 
-    
-            
         if char == '+':
             # ✅ Buscar la base completa entre paréntesis si la hay
             if expanded_expression and expanded_expression[-1] == ')':
@@ -37,12 +35,6 @@ def expand_operators(expression):
                     if count == 0:
                         break
                 expanded_expression.append(f'{sub_expr}.{sub_expr}*')
-            elif expanded_expression:
-                base = expanded_expression.pop()
-                expanded_expression.append(f'{base}.{base}*')
-            else:
-                raise ValueError("Error: '+' debe estar precedido por un operando.")
-
         elif char == '?':
             if expanded_expression:
                 base = expanded_expression.pop()
@@ -94,20 +86,7 @@ def convert_infix_to_postfix(expresion):
     return ShuntingYard(expanded_expression)
 
 if __name__ == '__main__':
-    infix = "else"
+    infix = "(a|b)+"
     postfix = convert_infix_to_postfix(infix)
     print(postfix)  # Debería imprimir "abc*+d+"
 
-
-# ✅ Ejemplo de prueba diferenciando literal '+' del operador +
-if __name__ == "__main__":
-    print("--- Prueba literal '+' ---")
-    expresion = "'else"
-    resultado = convert_infix_to_postfix(expresion)
-    print("Postfix:", resultado)
-
-    print("\n--- Prueba operador aaas+ ---")
-    expresion = "(a|b)+'"
-    resultado = convert_infix_to_postfix(expresion)
-    
-    print("Postfix:", resultado)

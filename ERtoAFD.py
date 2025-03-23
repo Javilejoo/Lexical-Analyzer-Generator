@@ -87,7 +87,6 @@ def ERtoAFD(expresion):
     print("Transiciones:")
     for estado, trans in afd["transiciones"].items():
         print(f"{estado} -- {trans}")
-
     veces = input("¿Cuántas cadenas desea evaluar? ")
     veces = int(veces)
     for i in range(veces):
@@ -202,7 +201,7 @@ def simular_afd(afd, cadena):
         
 
 # Leer la expresión regular desde archivo
-expresion = fun.leerER("ER.txt")
+expresion = fun.leerER("output/infix_final.txt")
 
 continuar = True
 while continuar:
