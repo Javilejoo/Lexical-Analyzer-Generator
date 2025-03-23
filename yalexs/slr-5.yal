@@ -1,13 +1,12 @@
-header:
-header
+{header}
 
-EXPRESIONES ENCONTRADAS:
+
 let number = ['0'-'9']
 let numbers = ['0'-'9']+
 let letter = ['a'-'d']
 
-REGLAS ENCONTRADAS:
+rule tokens = 
 |numbers { return Numbers}
 
-trailer:
-trailer
+
+{trailer}

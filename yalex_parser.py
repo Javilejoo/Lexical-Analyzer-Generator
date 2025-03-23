@@ -136,7 +136,7 @@ def extraer_trailer(yalex_code):
 
 
 
-yalex = 'yalexs/slr-4.yal'
+yalex = 'yalexs/slr-5.yal'
 yalex_parser(yalex)
 
 header, expresiones, reglas, trailer = yalex_parser(yalex)
@@ -351,6 +351,28 @@ def generar_expresion_infix(reglas_procesadas):
     # Unir todo con '|'
     return '|'.join(expresiones)
 
+def generar_final_infix_total(reglas_procesadas, definiciones_expandidas):
+    """
+    Genera la expresión infix final combinando las definiciones y las reglas.
+    La salida tendrá la forma:
+        ((definición1|definición2|... )|(regla1|regla2|... ))
+    y estará englobada entre paréntesis, para poder concatenarle el '#' al final.
+    """
+    # Generar la parte de las reglas (ya unidas con '|')
+    reglas_expr = generar_expresion_infix(reglas_procesadas)
+    
+    # Generar la parte de las definiciones: se unen los valores de las definiciones expandidas con '|'
+    definiciones_expr = '|'.join(definiciones_expandidas.values()) if definiciones_expandidas else ''
+    
+    # Combinar ambas partes:
+    if definiciones_expr:
+        combinado = f"({definiciones_expr})|({reglas_expr})"
+    else:
+        combinado = reglas_expr  # Si no hay definiciones, usar solo las reglas.
+    
+    # Englobar toda la expresión entre paréntesis
+    final_expr = f"({combinado})"
+    return final_expr
 
 
 
@@ -366,7 +388,6 @@ definiciones = procesar_expresiones(expresiones)
 # Validar si '_' está definido
 if '_' not in definiciones:
     print("⚠ Warning: símbolo '_' no definido. Se asumirá como (ANY)")
-    definiciones['_'] = '(ANY)'
 
 # Expandir las definiciones de forma recursiva
 expandidas = expand_definitions_recursivo(definiciones)
@@ -391,6 +412,11 @@ with open('output/processed_definitions.txt', 'w', encoding='utf-8') as f:
 
     f.write("\n---- Infix final ----\n")
     f.write(infix_final)
+
+with open('output/final_infix.txt', 'w', encoding='utf-8') as f:
+    f.write(infix_final)
+
+infix_final = generar_final_infix_total(reglas_procesadas, expandidas)
 
 with open('output/final_infix.txt', 'w', encoding='utf-8') as f:
     f.write(infix_final)
