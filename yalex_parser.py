@@ -392,3 +392,5 @@ with open('output/processed_definitions.txt', 'w', encoding='utf-8') as f:
     f.write("\n---- Infix final ----\n")
     f.write(infix_final)
 
+with open('output/final_infix.txt', 'w', encoding='utf-8') as f:
+    f.write(infix_final)

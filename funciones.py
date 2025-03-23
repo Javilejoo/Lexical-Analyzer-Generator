@@ -3,6 +3,3 @@ def leerER(file):
         contenido = f.read()
     return contenido
     
-
-
-print(repr(leerER("output/infix_final.txt"))) 
