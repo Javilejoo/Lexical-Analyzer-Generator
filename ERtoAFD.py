@@ -38,6 +38,7 @@ def ERtoAFD(expresion):
         return expresion + '#'
 
     postfix = sy.convert_infix_to_postfix(aumentarER(expresion))
+    print(postfix)
     root = estructuras.build_expression_tree(postfix)
 
     def assign_pos_ids(root):
