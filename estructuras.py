@@ -62,10 +62,11 @@ def build_expression_tree(postfix_expr):
                     node = Node('\n')
                 elif escaped_char == 't':
                     node = Node('\t')
+                elif token == ' ':
+                    node = Node(' ')
                 else:
                     node = Node(escaped_char)
-            elif token == ' ':
-                node = Node(' ')
+
             else:
                 node = Node(token)
         

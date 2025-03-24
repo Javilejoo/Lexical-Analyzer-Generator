@@ -136,7 +136,7 @@ def extraer_trailer(yalex_code):
 
 
 
-yalex = 'yalexs/slr-5.yal'
+yalex = 'yalexs/slr-1.yal'
 yalex_parser(yalex)
 
 header, expresiones, reglas, trailer = yalex_parser(yalex)
@@ -202,9 +202,9 @@ def extraer_literal(cadena, indice):
             i += 1
             if i < len(cadena):
                 if cadena[i] == 't':
-                    literal += '\t'
+                    literal += '\\t'
                 elif cadena[i] == 'n':
-                    literal += '\n'
+                    literal += '\\n'
                 else:
                     literal += cadena[i]
                 i += 1
