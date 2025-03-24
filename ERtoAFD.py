@@ -36,9 +36,10 @@ def ERtoAFD(expresion):
 
     def aumentarER(expresion):
         return expresion + '#'
-
+    infix = aumentarER(expresion)
+    print("Expresión regular aumentada:", infix)
     postfix = sy.convert_infix_to_postfix(aumentarER(expresion))
-    print(postfix)
+    print('postfix',postfix)
     root = estructuras.build_expression_tree(postfix)
 
     def assign_pos_ids(root):
@@ -70,9 +71,9 @@ def ERtoAFD(expresion):
     followpos_table = visitorFollowPos.get_followpos_table()
 
     
-    print("Tabla de FollowPos:")
-    for pos, follows in sorted(followpos_table.items()):
-        print(f"Pos {pos}: {follows}")
+    #print("Tabla de FollowPos:")
+    #for pos, follows in sorted(followpos_table.items()):
+        #print(f"Pos {pos}: {follows}")
 
     gv_utils.generate_expression_tree_image(root, "expression_tree")
 
@@ -120,7 +121,7 @@ def construir_afd(root, followpos_table):
     
     # Inicializar estructuras
     estados = {}  # { estado: {transiciones} }
-    estado_inicial = frozenset(root.firstpos)
+    estado_inicial = frozenset(root.left.firstpos)
     por_procesar = [estado_inicial]
     procesados = set()
     aceptacion = set()
@@ -176,7 +177,7 @@ def simular_afd(afd, cadena):
     Returns:
         bool: True si la cadena es aceptada, False en caso contrario
     """
-    cadena = cadena.replace('\\t', '\t').replace('\\n', '\n')
+    cadena = cadena.replace('\\t', '\t').replace('\\n', '\n').replace(' ', ' ')
     # Verificar símbolos no válidos
     for simbolo in cadena:
         if simbolo not in afd['alfabeto']:
@@ -202,7 +203,7 @@ def simular_afd(afd, cadena):
         
 
 # Leer la expresión regular desde archivo
-expresion = fun.leerER("output/infix_final.txt")
+expresion = fun.leerER("output/final_infix.txt")
 
 continuar = True
 while continuar:
