@@ -1,13 +1,20 @@
 header:
-header
+
 
 EXPRESIONES ENCONTRADAS:
-let number = ['0'-'9']
-let numbers = ['0'-'9']+
-let letter = ['a'-'d']
+let delim = [' ''\t''\n']
+let ws = delim+
+let letter = ['A'-'Z''a'-'z']
+let digit = ['0'-'9']
+let id = letter(letter|digit)*
 
 REGLAS ENCONTRADAS:
-|numbers { return Numbers}
+ws
+| id        { return ID }
+| '+'       { return PLUS }
+| '*'       { return TIMES }
+| '('       { return LPAREN }
+| ')'       { return RPAREN }
 
 trailer:
-trailer
+

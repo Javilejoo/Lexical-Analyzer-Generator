@@ -23,15 +23,6 @@ from followPosVisitor import FollowPosVisitor
 from AFDGV import dibujar_AFD
 from AFD_minimo import minimizar_AFD
 
-
-
-def print_tree(node, level=0):
-    """Imprime el árbol de expresión con identificadores de posición."""
-    if node is not None:
-        print_tree(node.right, level + 1)
-        print(' ' * 4 * level + f'-> {node.value} (id={node.pos_id}) (nullable={node.nullable})')
-        print_tree(node.left, level + 1)
-
 def ERtoAFD(expresion):
 
     def aumentarER(expresion):
@@ -177,8 +168,7 @@ def simular_afd(afd, cadena):
     Returns:
         bool: True si la cadena es aceptada, False en caso contrario
     """
-    cadena = cadena.replace('\\t', '\t').replace('\\n', '\n').replace(' ', ' ')
-    # Verificar símbolos no válidos
+    #cadena = cadena.replace('\\t', '\t').replace('\\n', '\n').replace(' ', ' ')   # Verificar símbolos no válidos
     for simbolo in cadena:
         if simbolo not in afd['alfabeto']:
             return False

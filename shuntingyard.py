@@ -3,9 +3,9 @@ operadores = {'+', '?', '*', '|', '.', '(', ')', "'"}
 
 def get_precedence(operator):
     precedencia = {
-        '|': 1,
-        '.': 2,  
-        '*': 3,
+        '|': 2,
+        '.': 3,  
+        '*': 4,
         '+': 1,
         '?': 1
     }
@@ -67,8 +67,24 @@ def expand_operators(expression):
 
         i += 1
 
-    return ''.join(expanded_expression).replace('()', '')
+    return ''.join(expanded_expression).replace('()', '')  # r
 
+def concatImplicita(infix):
+    resultado = []
+    for i in range(len(infix)):
+        if i > 0:
+            prev = infix[i - 1]
+            curr = infix[i]
+            # Si el token previo es un operando, o es ')' o uno de los operadores de cierre
+            # (por ejemplo, '*' o '+' o '?'), y el token actual es un operando, '(' o el marcador final '#',
+            # se inserta el operador de concatenación.
+            if ((prev.isalnum() or prev in [')', '*', '+', '?', '#']) and
+                (curr.isalnum() or curr == '(' or curr == '#' )):
+                resultado.append('.')
+            resultado.append(curr)
+        else:
+            resultado.append(infix[i])
+    return "".join(resultado)
 
 def ShuntingYard(expresion):
     stack = []
@@ -119,10 +135,11 @@ def convert_infix_to_postfix(expresion):
     
     expresion = ''.join(nueva_expresion)
     # Resto del procesamiento
-    expresion = expresion.replace("\\n", "ĉ").replace("\\t", "ŵ")
+    expresion = expresion.replace("\\n", "ĉ").replace("\\t", "ŵ") # r
     expanded_expression = expand_operators(expresion)
+    expanded_expression = concatImplicita(expanded_expression)
     postfix = ShuntingYard(expanded_expression)
-    return postfix.replace('ĉ', '\\n').replace('ŵ', '\\t')
+    return postfix.replace('ĉ', '\\n').replace('ŵ', '\\t') # r
 
 if __name__ == '__main__':
     infix = r"(' '|\n|\t)"
@@ -133,7 +150,7 @@ if __name__ == '__main__':
     print('infix',infix)
     postfix = convert_infix_to_postfix(infix)
     print('postfix',postfix) 
-    infix = "('a'|'c'|' ')+"
+    infix = "((A|B|a|b)(((0|1)|(A|B|a|b))*))#"
     print('infix',infix)
     postfix = convert_infix_to_postfix(infix)
     print('postfix',postfix) 
