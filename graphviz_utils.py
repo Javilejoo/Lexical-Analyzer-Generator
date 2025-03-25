@@ -1,5 +1,5 @@
 from graphviz import Digraph
-
+from estructuras import *
 def generate_expression_tree_image(root, filename):
     dot = Digraph(format='png')
 

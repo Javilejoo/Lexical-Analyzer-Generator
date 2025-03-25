@@ -135,7 +135,7 @@ def extraer_trailer(yalex_code):
 
 
 
-
+#NOMBRE YALEX
 yalex = 'yalexs/slr-1.yal'
 yalex_parser(yalex)
 
@@ -253,9 +253,31 @@ def expand_range(rango):
             literal, i = extraer_literal(rango, i)
             elementos.append(literal)
         elif rango[i] == '"':
-            # Extraer literal entre comillas dobles
-            literal, i = extraer_literal_doble(rango, i)
-            elementos.append(literal)
+            # Manejar el caso ["\s\t\n"]
+            i += 1  # saltar la primera comilla doble
+            literal = ''
+            while i < len(rango) and rango[i] != '"':
+                if rango[i] == '\\' and i + 1 < len(rango):
+                    if rango[i + 1] == 't':
+                        elementos.append('\\t')
+                        i += 2
+                    elif rango[i + 1] == 'n':
+                        elementos.append('\\n')
+                        i += 2
+                    elif rango[i + 1] == 's':
+                        elementos.append("' '")  # Tratamos \s como espacio
+                        i += 2
+                    else:
+                        # Otro caracter con backslash, tomarlo literal
+                        elementos.append(rango[i] + rango[i + 1])
+                        i += 2
+                else:
+                    if rango[i] == ' ':
+                        elementos.append("' '")
+                    else:
+                        elementos.append(rango[i])
+                    i += 1
+            i += 1  # Saltar la comilla de cierre
         elif rango[i] == '-':
             # Maneja rangos, por ejemplo: 'A'-'Z'
             if elementos:
@@ -274,14 +296,15 @@ def expand_range(rango):
     return '(' + '|'.join(map(escape_specials, elementos)) + ')'
 
 
+
 def escape_specials(char):
-    if char == "' '":
+    if char == ' ' or char == "' '":
         return "' '"
-    if char == '\\t':
+    if char == '\\t' or char == "'\\t'":
         return '\\t'
-    if char == '\\n':
+    if char == '\\n' or char == "'\\n'":
         return '\\n'
-    if char == '\\s':
+    if char == '\\s' or char == "'\\s'":
         return '\\s'
     return char
 
@@ -331,7 +354,7 @@ def procesar_expresiones(expresiones):
     definiciones = {}
     for exp in expresiones:
         _, resto = exp.split('let', 1)
-        nombre, expr = resto.strip().split('=', 1)
+        nombre, expr = resto.strip().split('=', 1) # s
         definiciones[nombre.strip()] = expr.strip()
     return definiciones
 
@@ -346,14 +369,16 @@ def procesar_reglas(reglas, definiciones_expandidas):
     """Procesa las reglas y expande las referencias usando las definiciones."""
     reglas_procesadas = []
     for regla in reglas:
-        if '{' not in regla or 'return' not in regla:
-            continue  # Saltar si la línea no es válida
-
-        # Separar patrón y token
-        patron = regla[:regla.find('{')].strip()
-        token = regla[regla.find('return') + 6:].replace('}', '').strip()
-
-        # Limpiar el patron de '|' y espacios
+        # Si la regla contiene acción (indicada por '{' y 'return')
+        if '{' in regla and 'return' in regla:
+            patron = regla[:regla.find('{')].strip()
+            token = regla[regla.find('return') + 6:].replace('}', '').strip()
+        else:
+            # Si no tiene acción, se toma la regla completa
+            patron = regla.strip()
+            token = patron  # Se asigna el propio patrón como token
+        
+        # Limpiar el patrón de posibles '|' y espacios adicionales
         patron_limpio = patron.strip().lstrip('|').strip()
 
         # Expandir el patrón si es una referencia a una definición
@@ -364,9 +389,10 @@ def procesar_reglas(reglas, definiciones_expandidas):
         else:
             patron_expandido = patron_limpio  # dejarlo literal si no es definición
 
-        # Agregar la regla procesada
+        # Agregar la regla procesada en formato: -> token = patrón_expandido
         reglas_procesadas.append(f"-> {token} = {patron_expandido}")
 
+    return reglas_procesadas
     return reglas_procesadas
 def generar_expresion_infix(reglas_procesadas):
     """Genera la gran expresión infix final, protegiendo los literales especiales."""
@@ -387,29 +413,12 @@ def generar_expresion_infix(reglas_procesadas):
     return '|'.join(expresiones)
 
 def generar_final_infix_total(reglas_procesadas, definiciones_expandidas):
-    """
-    Genera la expresión infix final combinando las definiciones y las reglas.
-    La salida tendrá la forma:
-        ((definición1|definición2|... )|(regla1|regla2|... ))
-    y estará englobada entre paréntesis, para poder concatenarle el '#' al final.
-    """
-    # Generar la parte de las reglas (ya unidas con '|')
-    reglas_expr = generar_expresion_infix(reglas_procesadas)
-    
-    # Generar la parte de las definiciones: se unen los valores de las definiciones expandidas con '|'
-    definiciones_expr = '|'.join(definiciones_expandidas.values()) if definiciones_expandidas else ''
-    
-    # Combinar ambas partes:
-    if definiciones_expr:
-        combinado = f"({definiciones_expr})|({reglas_expr})"
-    else:
-        combinado = reglas_expr  # Si no hay definiciones, usar solo las reglas.
-    
+
+    reglas_expr = generar_expresion_infix(reglas_procesadas) 
+    final_expr = f"({reglas_expr})"
     # Englobar toda la expresión entre paréntesis
-    final_expr = f"({combinado})"
+    
     return final_expr
-
-
 
 with open('output/info_current_yal.txt', 'r', encoding='utf-8') as f:
     contenido = f.read()
@@ -420,9 +429,6 @@ expresiones = extraer_expresiones_del_txt(contenido)
 # Convertir a diccionario de definiciones
 definiciones = procesar_expresiones(expresiones)
 
-# Validar si '_' está definido
-if '_' not in definiciones:
-    print("⚠ Warning: símbolo '_' no definido. Se asumirá como (ANY)")
 
 # Expandir las definiciones de forma recursiva
 expandidas = expand_definitions_recursivo(definiciones)
