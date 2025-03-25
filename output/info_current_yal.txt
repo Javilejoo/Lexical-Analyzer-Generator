@@ -4,8 +4,8 @@ header:
 EXPRESIONES ENCONTRADAS:
 let delim = [' ''\t''\n']
 let ws = delim+
-let letter = ['A'-'C''a'-'c']
-let digit = ['0'-'2']
+let letter = ['A'-'Z''a'-'z']
+let digit = ['0'-'9']
 let id = letter(letter|digit)*
 
 REGLAS ENCONTRADAS:

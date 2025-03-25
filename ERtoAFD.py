@@ -66,20 +66,20 @@ def ERtoAFD(expresion):
     #for pos, follows in sorted(followpos_table.items()):
         #print(f"Pos {pos}: {follows}")
 
-    gv_utils.generate_expression_tree_image(root, "expression_tree")
+    gv_utils.generate_expression_tree_image(root, "output/expression_tree")
 
     # Suponiendo que ya tienes el árbol con followpos calculado
     afd = construir_afd(root,followpos_table)
-    dibujar_AFD(afd, "afd")
+    dibujar_AFD(afd, "output/afd")
 
     # Imprimir resultados
-    print("Estados:", afd["estados"])
-    print("Alfabeto:", afd["alfabeto"])
-    print("Estado inicial:", afd["inicial"])
-    print("Estados de aceptación:", afd["aceptacion"])
-    print("Transiciones:")
-    for estado, trans in afd["transiciones"].items():
-        print(f"{estado} -- {trans}")
+    #print("Estados:", afd["estados"])
+    #print("Alfabeto:", afd["alfabeto"])
+    #print("Estado inicial:", afd["inicial"])
+    #print("Estados de aceptación:", afd["aceptacion"])
+    #print("Transiciones:")
+    #for estado, trans in afd["transiciones"].items():
+     #   print(f"{estado} -- {trans}")
     veces = input("¿Cuántas cadenas desea evaluar? ")
     veces = int(veces)
     for i in range(veces):
@@ -91,7 +91,7 @@ def ERtoAFD(expresion):
 
     # Minimizar el AFD
     afd_min = minimizar_AFD(afd)
-    dibujar_AFD(afd_min, "afd_min")
+    dibujar_AFD(afd_min, "output/afd_min")
 
 def construir_afd(root, followpos_table):
     # Obtener todos los símbolos del alfabeto (excluyendo ε y #)
@@ -168,7 +168,6 @@ def simular_afd(afd, cadena):
     Returns:
         bool: True si la cadena es aceptada, False en caso contrario
     """
-    #cadena = cadena.replace('\\t', '\t').replace('\\n', '\n').replace(' ', ' ')   # Verificar símbolos no válidos
     for simbolo in cadena:
         if simbolo not in afd['alfabeto']:
             return False
@@ -194,15 +193,4 @@ def simular_afd(afd, cadena):
 
 # Leer la expresión regular desde archivo
 expresion = fun.leerER("output/final_infix.txt")
-
-continuar = True
-while continuar:
-    # Preguntar al usuario si desea generar un AFD o un AFN
-    opcion = input("¿Desea generar un AFD (1) o un AFN (2)? ")
-    if opcion == "1":
-        ERtoAFD(expresion)  # Tu función existente para generar el AFD
-    else:
-        print("Opción no válida.")
-    continuar = input("¿Desea continuar? (s/n) ") == "s"
-
-
+ERtoAFD(expresion)
