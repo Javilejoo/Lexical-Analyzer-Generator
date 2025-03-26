@@ -20,7 +20,6 @@ def expand_operators(expression):
         char = expression[i]
 
         if char == '+':
-            # ✅ Buscar la base completa entre paréntesis si la hay
             if expanded_expression and expanded_expression[-1] == ')':
                 # Extraer la expresión entre paréntesis como base
                 sub_expr = ''
@@ -34,7 +33,7 @@ def expand_operators(expression):
                     sub_expr = token + sub_expr
                     if count == 0:
                         break
-                expanded_expression.append(f'{sub_expr}.{sub_expr}*')
+                expanded_expression.append(f'({sub_expr}.{sub_expr}*)')
         elif char == '?':
             if expanded_expression:
                 base = expanded_expression.pop()
@@ -60,14 +59,21 @@ def expand_operators(expression):
                     expanded_expression.append(contenido)
                 i = j
         else:
-            if (expanded_expression and expanded_expression[-1] not in operadores and char not in operadores) or \
-               (expanded_expression and expanded_expression[-1] in [')', '*'] and char not in operadores):
-                expanded_expression.append('.')
+            if expanded_expression:
+                prev = expanded_expression[-1]
+                # Insertar el operador de concatenación ('.') si se cumple alguna de estas condiciones:
+                # 1. Si el token previo no es un operador y el actual tampoco lo es.
+                # 2. Si el token previo es ')' o '*' y el actual no es operador.
+                # 3. Si el token previo es un literal mapeado (placeholder) y el actual es '('.
+                if ((prev not in operadores and char not in operadores) or \
+                    (prev in [')', '*'] and char not in operadores) or \
+                    (prev in placeholder_to_literal and char == '(')):
+                    expanded_expression.append('.')
             expanded_expression.append(char)
-
+        
         i += 1
 
-    return ''.join(expanded_expression).replace('()', '')  # r
+    return ''.join(expanded_expression).replace('()', '')
 
 def concatImplicita(infix):
     resultado = []
@@ -183,9 +189,11 @@ def convert_infix_to_postfix(expresion):
     return postfix
 
 if __name__ == '__main__':
-    infix = "((s|t|n))"
-    postfix = convert_infix_to_postfix(infix)
+    infix = "((' '|'!'|'"'|'#'|'$'|'%'|'&'|'''|'('|')'|'*'|'+'|','|'-'|'.'|'/'|'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|':'|';'|'<'|'='|'>'|'?'|'@'|'A'|'B'|'C'|'D'|'E'|'F'|'G'|'H'|'I'|'J'|'K'|'L'|'M'|'N'|'O'|'P'|'Q'|'R'|'S'|'T'|'U'|'V'|'W'|'X'|'Y'|'Z'|'['|'\'|']'|'^'|'_'|'`'|'a'|'b'|'c'|'d'|'e'|'f'|'g'|'h'|'i'|'j'|'k'|'l'|'m'|'n'|'o'|'p'|'q'|'r'|'s'|'t'|'u'|'v'|'w'|'x'|'y'|'z'|'{'|'|'|'}'|'~'))*"
     print(f"Infix: {infix}")
+    expandir = expand_operators(infix)
+    print(f"Expandida: {expandir}")
+    postfix = convert_infix_to_postfix(infix)
     print(f"Postfix: {postfix}")
 
 

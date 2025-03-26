@@ -2,22 +2,17 @@ header:
 
 
 EXPRESIONES ENCONTRADAS:
-let delim = ["\s\t\n"]
+let delim = [' ''\t''\n']
 let ws = delim+
-let letter = ['A'-'C''a'-'c']
-let digit = ['0'-'2']
+let digit = ["0123456789"]
 let digits = digit+
-let id = letter(letter|digit)*
 let number = digits(.digits)?('E'['+''-']?digits)?
 
 REGLAS ENCONTRADAS:
-ws        { return WHITESPACE }
-| id        { return ID }
+ws
 | number    { return NUMBER }
 | '+'       { return PLUS }
-| '-'       { return MINUS }
 | '*'       { return TIMES }
-| '/'       { return DIV }
 | '('       { return LPAREN }
 | ')'       { return RPAREN }
 

@@ -25,7 +25,8 @@ def generate_expression_tree_image(root, filename):
     dot.render(filename, format='png', cleanup=True)
 
 # arbol de |*.AB|C|a|b|c|AB|C|a|b|c|01|2||*.|01|2|01|2|*.01|2|01|2|*..ε|.E'+''-'|ε|.01|2|01|2|*..ε|.|'+'|'-'|'*'|'/'|'('|')'|#.
-infix = "(((' '|\t|\n))+|((A|B|C|a|b|c))(((A|B|C|a|b|c))|((0|1|2)))*|(((0|1|2))+)((((0|1|2))+))?('E'('+'|'-')?(((0|1|2))+))?|'+'|'-'|'*'|'/'|'('|')')#"
-postfix = convert_infix_to_postfix(infix)
+
+postfix = "  \t|\n| \t|\n|*.AB|C|a|b|c|AB|C|a|b|c|01|2||*.|01|2|01|2|*.01|2|01|2|*..ε|.E'+''-'|ε|.01|2|01|2|*..ε|.|'+'|'-'|'*'|'/'|'('|')'|#."
+print('postfix', postfix)
 root = build_expression_tree(postfix)
-generate_expression_tree_image(root, "output/expression_tree")
+generate_expression_tree_image(root, "output/expression_tree2")
