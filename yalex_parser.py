@@ -136,7 +136,7 @@ def extraer_trailer(yalex_code):
 
 
 #NOMBRE YALEX
-yalex = 'yalexs/slr-1.yal'
+yalex = 'yalexs/slr-2.yal'
 yalex_parser(yalex)
 
 header, expresiones, reglas, trailer = yalex_parser(yalex)

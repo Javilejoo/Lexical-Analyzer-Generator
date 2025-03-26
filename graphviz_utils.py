@@ -23,3 +23,9 @@ def generate_expression_tree_image(root, filename):
 
     add_nodes_edges(root)
     dot.render(filename, format='png', cleanup=True)
+
+# arbol de |*.AB|C|a|b|c|AB|C|a|b|c|01|2||*.|01|2|01|2|*.01|2|01|2|*..ε|.E'+''-'|ε|.01|2|01|2|*..ε|.|'+'|'-'|'*'|'/'|'('|')'|#.
+infix = "(((' '|\t|\n))+|((A|B|C|a|b|c))(((A|B|C|a|b|c))|((0|1|2)))*|(((0|1|2))+)((((0|1|2))+))?('E'('+'|'-')?(((0|1|2))+))?|'+'|'-'|'*'|'/'|'('|')')#"
+postfix = convert_infix_to_postfix(infix)
+root = build_expression_tree(postfix)
+generate_expression_tree_image(root, "output/expression_tree")

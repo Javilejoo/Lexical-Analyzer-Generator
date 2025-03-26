@@ -116,7 +116,7 @@ literal_to_placeholder = {
     "/": "\ue003",
     "(": "\ue004",
     ")": "\ue005",
-    # Agrega otros si es necesario
+    ".": "\ue006"    # Agrega otros si es necesario
 }
 placeholder_to_literal = {v: k for k, v in literal_to_placeholder.items()}
 
@@ -183,7 +183,7 @@ def convert_infix_to_postfix(expresion):
     return postfix
 
 if __name__ == '__main__':
-    infix = "(((A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z))(((A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z))|((0|1|2|3|4|5|6|7|8|9)))*|'+'|'*'|'('|')')#"
+    infix = "((s|t|n))"
     postfix = convert_infix_to_postfix(infix)
     print(f"Infix: {infix}")
     print(f"Postfix: {postfix}")
