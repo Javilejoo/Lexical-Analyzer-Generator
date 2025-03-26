@@ -29,47 +29,95 @@ class Stack:
         else:
             raise Exception("Stack is empty")
 
-def build_expression_tree(postfix_expr):
-    stack = Stack()
-    
-    # Tokenizar la expresión postfija manualmente
+def tokenize_postfix(postfix_expr):
+    """
+    Tokeniza la expresión postfix de modo que:
+      - Los literales entre comillas (ej: "'+'", "'*'", "'('", "')'") se agrupan como un único token.
+      - Se agrupan secuencias de escape (por ejemplo, "\n", "\t").
+      - El resto se tokeniza carácter a carácter, sin ignorar espacios, tabulaciones ni saltos de línea.
+    """
     tokens = []
     i = 0
     while i < len(postfix_expr):
-        char = postfix_expr[i]
-        if char == '\\' and (i + 1) < len(postfix_expr):
-            tokens.append(char + postfix_expr[i+1])  # Agrupar '\' y el siguiente carácter
+        if postfix_expr[i] == "'":
+            # Se encontró el inicio de un literal
+            j = i + 1
+            literal = ""
+            while j < len(postfix_expr) and postfix_expr[j] != "'":
+                literal += postfix_expr[j]
+                j += 1
+            if j < len(postfix_expr):
+                # Agregar el token literal completo (con comillas)
+                tokens.append("'" + literal + "'")
+                i = j + 1
+            else:
+                # En caso de comilla sin cerrar, se agrega tal cual
+                tokens.append("'" + literal)
+                i = j
+        elif postfix_expr[i] == '\\' and (i + 1) < len(postfix_expr):
+            # Agrupar secuencia de escape (por ejemplo, "\n" o "\t")
+            tokens.append(postfix_expr[i] + postfix_expr[i+1])
             i += 2
         else:
-            tokens.append(char)
+            # Agregar cualquier carácter, incluidos espacios, tabulaciones y saltos
+            tokens.append(postfix_expr[i])
             i += 1
+    return tokens
+
+def build_expression_tree(postfix_expr):
+    """
+    Construye el árbol AST a partir de la expresión postfix.
     
-    # Construir el árbol con tokens correctos
+    Utiliza tokenize_postfix para agrupar correctamente los literales.
+    Se asume que los operadores (sin comillas) son:
+      - Operadores binarios: '|' , '.' y '+' (si se usa sin comillas)
+      - Operadores unarios: '*' y '?'
+    
+    Si un token aparece entre comillas (por ejemplo, "'+'"), se extrae su contenido y se
+    trata como operando literal.
+    """
+    stack = Stack()
+    tokens = tokenize_postfix(postfix_expr)
+    
+    # Conjunto de operadores (sin comillas) para construir nodos internos
+    operator_set = {'|', '.', '*', '+', '?'}
+    
     for token in tokens:
-        if token in {'|', '.', '*'}:
-            if token in {'|', '.'}:
-                right = stack.pop()
-                left = stack.pop()
+        if token in operator_set:
+            # Token es operador (sin comillas)
+            if token in {'|', '.', '+'}:
+                try:
+                    right = stack.pop()
+                    left = stack.pop()
+                except Exception as e:
+                    raise Exception(f"Error al procesar operador '{token}': la pila está vacía. Tokens: {tokens}") from e
                 node = Node(token, left, right)
-            else:
-                operand = stack.pop()
+            elif token in {'*', '?'}:
+                try:
+                    operand = stack.pop()
+                except Exception as e:
+                    raise Exception(f"Error al procesar operador unario '{token}': la pila está vacía. Tokens: {tokens}") from e
                 node = Node(token, operand, None)
+            stack.push(node)
         else:
-            # Manejar caracteres escapados y espacios
-            if len(token) == 2 and token[0] == '\\':
+            # Si el token está entre comillas, se trata como literal
+            if token.startswith("'") and token.endswith("'"):
+                literal = token[1:-1]
+                node = Node(literal)
+            elif len(token) == 2 and token[0] == '\\':
+                # Manejo de secuencias de escape
                 escaped_char = token[1]
                 if escaped_char == 'n':
                     node = Node('\n')
                 elif escaped_char == 't':
                     node = Node('\t')
-                elif token == ' ':
-                    node = Node(' ')
                 else:
                     node = Node(escaped_char)
-
             else:
+                # Cualquier otro token (incluidos espacios, tabulaciones, etc.) se toma tal cual
                 node = Node(token)
-        
-        stack.push(node)
+            stack.push(node)
     
+    if len(stack.stack) != 1:
+        raise Exception(f"Error en la construcción del árbol: la pila debería tener un único elemento, pero tiene {len(stack.stack)}. Tokens procesados: {tokens}")
     return stack.pop()

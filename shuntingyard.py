@@ -109,49 +109,83 @@ def ShuntingYard(expresion):
 
     return ''.join(output)
 
+literal_to_placeholder = {
+    "+": "\ue000",
+    "-": "\ue001",
+    "*": "\ue002",
+    "/": "\ue003",
+    "(": "\ue004",
+    ")": "\ue005",
+    ".": "\ue006"    # Agrega otros si es necesario
+}
+placeholder_to_literal = {v: k for k, v in literal_to_placeholder.items()}
+
+def map_literal_tokens(expresion):
+    """
+    Recorre la expresión infix y reemplaza cada literal (del tipo: 'X' donde X es un solo carácter)
+    por un placeholder único.
+    """
+    new_expr = ""
+    i = 0
+    while i < len(expresion):
+        if expresion[i] == "'":
+            # Comprobar que es un literal de un solo caracter: debe tener la forma 'X'
+            if i + 2 < len(expresion) and expresion[i+2] == "'":
+                char = expresion[i+1]
+                if char in literal_to_placeholder:
+                    new_expr += literal_to_placeholder[char]
+                else:
+                    # Si no está mapeado, lo dejamos con sus comillas
+                    new_expr += "'" + char + "'"
+                i += 3
+                continue
+        new_expr += expresion[i]
+        i += 1
+    return new_expr
+
+def restore_literal_tokens(expresion):
+    """
+    Recorre la expresión (por ejemplo, el resultado postfix) y reemplaza los placeholders
+    por sus literales originales, mostrándolos con comillas simples.
+    """
+    new_expr = ""
+    for ch in expresion:
+        if ch in placeholder_to_literal:
+            new_expr += "'" + placeholder_to_literal[ch] + "'"
+        else:
+            new_expr += ch
+    return new_expr
+
 
 def convert_infix_to_postfix(expresion):
-    # Eliminar comillas simples manualmente (ej: 'a' → a)
-    nueva_expresion = []
-    i = 0
-    n = len(expresion)
+    """
+    Convierte la expresión infix a postfix.
+    Se reemplazan secuencias especiales, se mapean los literales a placeholders,
+    se aplican las funciones de expansión, concatenación implícita y Shunting Yard,
+    y finalmente se restauran los literales.
+    """
+    # Reemplazar secuencias especiales para evitar interferencias (opcional)
+    expresion = expresion.replace("\\n", "ĉ").replace("\\t", "ŵ")
     
-    while i < n:
-        if expresion[i] == "'":
-            # Buscar la siguiente comilla
-            j = i + 1
-            while j < n and expresion[j] != "'":
-                j += 1
-            if j < n:
-                contenido = expresion[i+1:j]
-                if len(contenido) == 1:
-                    nueva_expresion.append(contenido)
-                i = j
-            else:
-                nueva_expresion.append(expresion[i])
-        else:
-            nueva_expresion.append(expresion[i])
-        i += 1
+    # Mapear los literales a placeholders
+    mapped_expr = map_literal_tokens(expresion)
     
-    expresion = ''.join(nueva_expresion)
-    # Resto del procesamiento
-    expresion = expresion.replace("\\n", "ĉ").replace("\\t", "ŵ") # r
-    expanded_expression = expand_operators(expresion)
+    # Aplicar la expansión de operadores y la concatenación implícita
+    expanded_expression = expand_operators(mapped_expr)
     expanded_expression = concatImplicita(expanded_expression)
+    
+    # Aplicar el algoritmo de Shunting Yard (que trabaja a nivel de caracteres)
     postfix = ShuntingYard(expanded_expression)
-    return postfix.replace('ĉ', '\\n').replace('ŵ', '\\t') # r
+    postfix = postfix.replace('ĉ', '\\n').replace('ŵ', '\\t')
+    
+    # Restaurar los literales a su forma original (con comillas)
+    postfix = restore_literal_tokens(postfix)
+    return postfix
 
 if __name__ == '__main__':
-    infix = r"(' '|\n|\t)"
-    print('infix',infix)
+    infix = "((s|t|n))"
     postfix = convert_infix_to_postfix(infix)
-    print('postfix',postfix) 
-    infix = "('a'|'c'|' ')"
-    print('infix',infix)
-    postfix = convert_infix_to_postfix(infix)
-    print('postfix',postfix) 
-    infix = "((A|B|a|b)(((0|1)|(A|B|a|b))*))#"
-    print('infix',infix)
-    postfix = convert_infix_to_postfix(infix)
-    print('postfix',postfix) 
+    print(f"Infix: {infix}")
+    print(f"Postfix: {postfix}")
+
 
