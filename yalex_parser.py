@@ -131,12 +131,8 @@ def extraer_trailer(yalex_code):
     return trailer, yalex_code
 
 
-
-
-
-
 #NOMBRE YALEX
-yalex = 'yalexs/slr-2.yal'
+yalex = 'yalexs/slr-3.yal'
 yalex_parser(yalex)
 
 header, expresiones, reglas, trailer = yalex_parser(yalex)
@@ -174,10 +170,32 @@ def expand_definitions_recursivo(definiciones):
                     resultado += f'({expand(token)})'
                 else:
                     resultado += token
+
+            # Detectar literales entre comillas simples
+            elif expr[i] == "'":
+                i += 1
+                literal = ''
+                while i < len(expr) and expr[i] != "'":
+                    literal += expr[i]
+                    i += 1
+                i += 1  # Saltar la comilla de cierre
+                # Si el literal es alfabético se deja sin comillas (ejemplo: 'E' se convierte en E)
+                # En caso contrario (como '+' o '-') se encierra en comillas
+                if literal.isalpha():
+                    resultado += literal
+                else:
+                    resultado += f"'{literal}'"
+
+            # Detectar rangos
             elif expr[i] == '[':
                 fin = expr.find(']', i)
                 resultado += expand_range(expr[i:fin+1])
                 i = fin + 1
+
+            elif expr[i] == '_':
+                resultado += expand_printable_chars()
+                i += 1
+
             else:
                 resultado += expr[i]
                 i += 1
@@ -188,6 +206,7 @@ def expand_definitions_recursivo(definiciones):
         expand(nombre)
 
     return expanded
+
 
 def extraer_literal(cadena, indice):
     """
@@ -241,74 +260,91 @@ def extraer_literal_doble(cadena, indice):
     raise ValueError("Literal entre comillas dobles no cerrado correctamente.")
 
 def expand_range(rango):
-    """
-    Procesa una cadena de rango, por ejemplo: [' ''\t''\n'], extrayendo cada literal
-    completo y luego uniéndolos con '|' entre paréntesis.
-    """
+    # Procesa una cadena de rango, por ejemplo: ['+''-'] o ['0'-'2']
     elementos = []
     i = 0
     while i < len(rango):
         if rango[i] == "'":
-            # Extraer literal entre comillas simples
-            literal, i = extraer_literal(rango, i)
-            elementos.append(literal)
-        elif rango[i] == '"':
-            # Manejar el caso ["\s\t\n"]
-            i += 1  # saltar la primera comilla doble
-            literal = ''
+            i += 1
+            char = ''
+            while i < len(rango) and rango[i] != "'":
+                char += rango[i]
+                i += 1
+            elementos.append(char)
+            i += 1  # Saltar la comilla final
+        elif rango[i] == '"':  # Soporte para ["\s\t\n"] si lo necesitaras
+            i += 1
             while i < len(rango) and rango[i] != '"':
                 if rango[i] == '\\' and i + 1 < len(rango):
-                    if rango[i + 1] == 't':
-                        elementos.append('\\t')
+                    if rango[i+1] in ('t','n','s'):
+                        if rango[i+1] == 't':
+                            elementos.append('\\t')
+                        elif rango[i+1] == 'n':
+                            elementos.append('\\n')
+                        elif rango[i+1] == 's':
+                            elementos.append(' ')
                         i += 2
-                    elif rango[i + 1] == 'n':
-                        elementos.append('\\n')
-                        i += 2
-                    elif rango[i + 1] == 's':
-                        elementos.append("' '")  # Tratamos \s como espacio
-                        i += 2
-                    else:
-                        # Otro caracter con backslash, tomarlo literal
-                        elementos.append(rango[i] + rango[i + 1])
-                        i += 2
-                else:
-                    if rango[i] == ' ':
-                        elementos.append("' '")
                     else:
                         elementos.append(rango[i])
+                        i += 1
+                else:
+                    elementos.append(rango[i])
                     i += 1
             i += 1  # Saltar la comilla de cierre
         elif rango[i] == '-':
-            # Maneja rangos, por ejemplo: 'A'-'Z'
-            if elementos:
-                start = elementos.pop()
-                i += 1  # Saltar el guion
-                if i < len(rango) and rango[i] == "'":
-                    end_literal, i = extraer_literal(rango, i)
-                    for c in range(ord(start), ord(end_literal) + 1):
-                        elementos.append(chr(c))
-            else:
+            # Maneja el rango, por ejemplo: 'A'-'Z'
+            start = elementos.pop()
+            i += 1  # Saltar el guion
+            if i < len(rango) and rango[i] == "'":
                 i += 1
+                end = ''
+                while i < len(rango) and rango[i] != "'":
+                    end += rango[i]
+                    i += 1
+                i += 1  # cerrar '
+                # Expandir rango
+                for c in range(ord(start), ord(end) + 1):
+                    elementos.append(chr(c))
         else:
             i += 1
-
-    # Une los elementos usando '|' y protege los caracteres especiales
     return '(' + '|'.join(map(escape_specials, elementos)) + ')'
 
 
 
+
 def escape_specials(char):
-    if char == ' ' or char == "' '":
-        return "' '"
-    if char == '\\t' or char == "'\\t'":
-        return '\\t'
-    if char == '\\n' or char == "'\\n'":
-        return '\\n'
-    if char == '\\s' or char == "'\\s'":
-        return '\\s'
-    return char
+    # Si es alfanumérico, lo dejamos sin comillas
+    if char.isalnum():
+        return char
+    # En otro caso, se encierra en comillas simples
+    return f"'{char}'"
+
 
     
+def convertir_puntos_a_literal(expresion):
+    """
+    Recorre la expresión y convierte cada punto que no esté dentro de comillas 
+    en "'.'" para que se trate como literal.
+    """
+    resultado = ""
+    in_quote = False
+    i = 0
+    while i < len(expresion):
+        ch = expresion[i]
+        if ch == "'":
+            # Alternar estado de literal
+            resultado += ch
+            in_quote = not in_quote
+            i += 1
+        else:
+            # Si no estamos dentro de un literal y encontramos un punto, lo convertimos
+            if not in_quote and ch == '.':
+                resultado += "'.'"
+                i += 1
+            else:
+                resultado += ch
+                i += 1
+    return resultado
 
 
 
@@ -365,6 +401,16 @@ def apply_operator(expansion, operador):
     else:
         return f"({expansion}){operador}"
     
+def expand_printable_chars():
+    """
+    Genera una cadena que representa la unión de todos los caracteres imprimibles (ASCII 32 a 126),
+    cada uno entre comillas simples, separados por '|', y todo entre paréntesis.
+    Ejemplo: (' '|'!'|'"'|...|'~')
+    """
+    printable_chars = [chr(i) for i in range(32, 127)]
+    union = '|'.join("'" + c + "'" for c in printable_chars)
+    return '(' + union + ')'
+    
 def procesar_reglas(reglas, definiciones_expandidas):
     """Procesa las reglas y expande las referencias usando las definiciones."""
     reglas_procesadas = []
@@ -393,7 +439,7 @@ def procesar_reglas(reglas, definiciones_expandidas):
         reglas_procesadas.append(f"-> {token} = {patron_expandido}")
 
     return reglas_procesadas
-    return reglas_procesadas
+
 def generar_expresion_infix(reglas_procesadas):
     """Genera la gran expresión infix final, protegiendo los literales especiales."""
     especiales = {'+', '-', '*', '/', '(', ')', '|', '?', ':', ';', '='}
@@ -458,6 +504,7 @@ with open('output/final_infix.txt', 'w', encoding='utf-8') as f:
     f.write(infix_final)
 
 infix_final = generar_final_infix_total(reglas_procesadas, expandidas)
+infix_final = convertir_puntos_a_literal(infix_final)
 
 with open('output/final_infix.txt', 'w', encoding='utf-8') as f:
     f.write(infix_final)

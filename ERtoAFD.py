@@ -29,8 +29,9 @@ def ERtoAFD(expresion):
         return expresion + '#'
     infix = aumentarER(expresion)
     print("Expresión regular aumentada:", infix)
+    #postfix = "  \t|\n| \t|\n|*.AB|C|a|b|c|AB|C|a|b|c|01|2||*.|01|2|01|2|*.01|2|01|2|*..ε|.E'+''-'|ε|.01|2|01|2|*..ε|.|'+'|'-'|'*'|'/'|'('|')'|#."
     postfix = sy.convert_infix_to_postfix(aumentarER(expresion))
-    print('postfix',postfix)
+    print('postfix:',postfix)
     root = estructuras.build_expression_tree(postfix)
 
     def assign_pos_ids(root):
@@ -67,6 +68,7 @@ def ERtoAFD(expresion):
         #print(f"Pos {pos}: {follows}")
 
     gv_utils.generate_expression_tree_image(root, "output/expression_tree")
+    print("Árbol de expresión generado en output/expression_tree.png")
 
     # Suponiendo que ya tienes el árbol con followpos calculado
     afd = construir_afd(root,followpos_table)
