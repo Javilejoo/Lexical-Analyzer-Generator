@@ -4,13 +4,13 @@ header:
 EXPRESIONES ENCONTRADAS:
 let delim = [' ''\t''\n']
 let ws = delim+
-let digit = ["0123456789"]
-let digits = digit+
-let number = digits(.digits)?('E'['+''-']?digits)?
+let letter = ['A'-'Z''a'-'z']
+let digit = ['0'-'9']
+let id = letter(letter|digit)*
 
 REGLAS ENCONTRADAS:
 ws
-| number    { return NUMBER }
+| id        { return ID }
 | '+'       { return PLUS }
 | '*'       { return TIMES }
 | '('       { return LPAREN }

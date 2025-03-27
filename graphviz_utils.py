@@ -23,10 +23,3 @@ def generate_expression_tree_image(root, filename):
 
     add_nodes_edges(root)
     dot.render(filename, format='png', cleanup=True)
-
-# arbol de |*.AB|C|a|b|c|AB|C|a|b|c|01|2||*.|01|2|01|2|*.01|2|01|2|*..ε|.E'+''-'|ε|.01|2|01|2|*..ε|.|'+'|'-'|'*'|'/'|'('|')'|#.
-
-postfix = "  \t|\n| \t|\n|*.AB|C|a|b|c|AB|C|a|b|c|01|2||*.|01|2|01|2|*.01|2|01|2|*..ε|.E'+''-'|ε|.01|2|01|2|*..ε|.|'+'|'-'|'*'|'/'|'('|')'|#."
-print('postfix', postfix)
-root = build_expression_tree(postfix)
-generate_expression_tree_image(root, "output/expression_tree2")

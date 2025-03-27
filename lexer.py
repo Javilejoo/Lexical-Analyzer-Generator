@@ -187,7 +187,7 @@ def cargar_afd_desde_er(er_file="output/final_infix.txt"):
         er_file (str): Ruta al archivo con la expresión regular.
     
     Returns:
-        dict: El AFD construido.
+        dict: El AFD minimizado construido.
     """
     # Leer la expresión regular desde el archivo
     expresion = leerER(er_file)
@@ -204,7 +204,6 @@ def cargar_afd_desde_er(er_file="output/final_infix.txt"):
     # Asignar IDs de posición
     def assign_pos_ids(node):
         counter = [1]
-        
         def traverse(n):
             if n is None:
                 return
@@ -214,10 +213,8 @@ def cargar_afd_desde_er(er_file="output/final_infix.txt"):
                     counter[0] += 1
             traverse(n.left)
             traverse(n.right)
-        
         traverse(root)
         return root
-    
     assign_pos_ids(root)
     
     # Calcular Nullable, FirstPos, LastPos, FollowPos
@@ -227,19 +224,29 @@ def cargar_afd_desde_er(er_file="output/final_infix.txt"):
         LastPosVisitor(),
         FollowPosVisitor()
     ]
-    
     for visitor in visitors:
         root.accept(visitor)
     
     followpos_table = visitors[3].get_followpos_table()
     
-    # Construir el AFD
+    # Construir el AFD a partir del árbol y la tabla followpos
     afd = construir_afd(root, followpos_table)
     
-    # Minimizar el AFD para mejor rendimiento
+    # Minimizar el AFD
     afd_min = minimizar_AFD(afd)
     
+    # Generar imágenes: árbol de expresión, AFD y AFD minimizado
+    from graphviz_utils import generate_expression_tree_image
+    from AFDGV import dibujar_AFD
+    generate_expression_tree_image(root, "output/expression_tree")
+    print("Árbol de expresión generado en output/expression_tree.png")
+    dibujar_AFD(afd, "output/afd")
+    print("AFD guardado como output/afd.png")
+    dibujar_AFD(afd_min, "output/afd_min")
+    print("AFD minimizado guardado como output/afd_min.png")
+    
     return afd_min
+
 
 def cargar_token_types(rules_file="output/info_current_yal.txt"):
     """

@@ -4,12 +4,12 @@
 
 let delim = ["\s\t\n"]
 let ws = delim+
-let letter = ['A'-'C''a'-'c']
-let digit = ['0'-'2']
+let letter = ['A'-'C''a'-'z']
+let digit = ['0'-'9']
 let digits = digit+
 let id = letter(letter|digit)*
 let number = digits(.digits)?('E'['+''-']?digits)?
-12100E-15
+
 
 rule tokens = 
     ws        { return WHITESPACE }               (* Cambie por una acción válida, que devuelva el token *)

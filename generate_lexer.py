@@ -13,6 +13,7 @@ Uso:
 
 import os
 import sys
+import shutil
 import importlib
 import subprocess
 from lexer import Lexer, cargar_afd_desde_er, cargar_token_types
@@ -47,14 +48,10 @@ def procesar_yal(archivo_yal):
     print(f"🔍 Procesando archivo YALex: {archivo_yal}")
     
     try:
-        # Verificar si existe el archivo yalex_parser.py
-        if os.path.exists("yalex_parser.py"):
-            subprocess.run(["python", "yalex_parser.py", archivo_yal], check=True)
-        else:
-            # Intentar con parser_yal.py como alternativa
-            subprocess.run(["python", "parser_yal.py", archivo_yal], check=True)
-        
-        # Verificar si se generó el archivo final_infix.txt
+        # Ejecutar yalex_parser.py con el archivo YAL recibido
+        result = subprocess.run(["python", "yalex_parser.py", archivo_yal], 
+                                  capture_output=True, text=True, check=True)
+        print(result.stdout)
         if not os.path.exists("output/final_infix.txt"):
             print("❌ Error: No se generó el archivo final_infix.txt")
             return False
@@ -64,6 +61,8 @@ def procesar_yal(archivo_yal):
     
     except subprocess.CalledProcessError as e:
         print(f"❌ Error al procesar el archivo YALex: {e}")
+        print("stdout:", e.stdout)
+        print("stderr:", e.stderr)
         return False
 
 def construir_afd():
@@ -76,18 +75,12 @@ def construir_afd():
     print("🔄 Construyendo el AFD a partir de la expresión regular")
     
     try:
-        # Intentar importar y ejecutar la función principal de ERtoAFD.py
         import ERtoAFD
         ERtoAFD_module = sys.modules["ERtoAFD"]
-        
-        # Verificar si el módulo tiene una función principal
         if hasattr(ERtoAFD_module, "ERtoAFD"):
-            # La función existe, pero no queremos ejecutarla completa
-            # porque pide input al usuario. En su lugar, cargaremos el AFD directamente.
             print("✅ Módulo ERtoAFD importado correctamente")
             return True
         else:
-            # Intentar ejecutar el script como un proceso independiente
             subprocess.run(["python", "ERtoAFD.py"], check=True)
             print("✅ AFD construido correctamente")
             return True
@@ -107,15 +100,9 @@ def generar_analizador():
     print("🔧 Generando el analizador léxico")
     
     try:
-        # Cargar el AFD desde el archivo de expresión regular
         afd = cargar_afd_desde_er()
-        
-        # Cargar los tipos de tokens desde el archivo de reglas
         token_types = cargar_token_types()
-        
-        # Crear el analizador léxico
         lexer = Lexer(afd, token_types)
-        
         print("✅ Analizador léxico generado correctamente")
         return lexer, token_types
     
@@ -137,14 +124,10 @@ def analizar_archivo(lexer, archivo):
     print(f"📝 Analizando archivo: {archivo}")
     
     try:
-        # Cargar el archivo a analizar
         if not lexer.cargar_archivo(archivo):
             print(f"❌ No se pudo abrir el archivo: {archivo}")
             return None
-        
-        # Obtener y mostrar todos los tokens
         tokens = lexer.obtener_todos_tokens()
-        
         print(f"✅ Análisis completado: {len(tokens)} tokens encontrados")
         return tokens
     
@@ -158,55 +141,44 @@ def mostrar_tokens(tokens):
     print("─" * 60)
     print(f"{'#':^5} {'TIPO':<15} {'VALOR':<20} {'LÍNEA':<5} {'COLUMNA':<5}")
     print("─" * 60)
-    
     for i, token in enumerate(tokens):
-        if token.tipo != "WHITESPACE":  # Opcional: filtrar espacios en blanco
+        if token.tipo != "WHITESPACE":
             print(f"{i+1:^5} {token.tipo:<15} {repr(token.valor):<20} {token.linea:<5} {token.columna:<5}")
-    
     print("─" * 60)
-    
-    # Generar un resumen de tipos de tokens
     tipos = {}
     for token in tokens:
         if token.tipo not in tipos:
             tipos[token.tipo] = 0
         tipos[token.tipo] += 1
-    
     print("\n📊 Resumen por tipo de token:")
     for tipo, cantidad in tipos.items():
         print(f"  {tipo}: {cantidad}")
 
 def main():
-    """Función principal del generador de analizadores léxicos."""
-    # Verificar argumentos
     if len(sys.argv) < 2:
         print("Uso: python generate_lexer.py <archivo.yal> [<archivo_a_analizar>]")
         return
     
-    # Verificar requisitos
     if not verificar_requisitos():
         return
-    
-    # Crear directorio de salida si no existe
+
+    # Eliminar la carpeta output si existe para partir de un entorno limpio
+    if os.path.exists("output"):
+        shutil.rmtree("output")
     os.makedirs("output", exist_ok=True)
     
-    # Obtener archivo .yal
     archivo_yal = sys.argv[1]
     
-    # Procesar archivo .yal
     if not procesar_yal(archivo_yal):
         return
     
-    # Construir AFD
     if not construir_afd():
         return
     
-    # Generar analizador léxico
     lexer, token_types = generar_analizador()
     if lexer is None:
         return
     
-    # Analizar archivo si se proporcionó
     if len(sys.argv) > 2:
         archivo_analizar = sys.argv[2]
         tokens = analizar_archivo(lexer, archivo_analizar)
@@ -214,8 +186,7 @@ def main():
             mostrar_tokens(tokens)
     else:
         print("\n🔍 No se especificó un archivo para analizar.")
-        print("Puedes usar el analizador léxico generado para analizar archivos de texto.")
-        print("Ejemplo: python test_lexer.py")
+        print("Ejemplo: python generate_lexer.py <archivo.yal> <archivo_a_analizar>")
 
 if __name__ == "__main__":
     main()

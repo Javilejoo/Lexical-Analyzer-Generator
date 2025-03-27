@@ -195,5 +195,6 @@ def simular_afd(afd, cadena):
 
 # Leer la expresión regular desde archivo
 #expresion = fun.leerER("output/final_infix.txt")
-expresion = fun.leerER("output/final_infix.txt")
-ERtoAFD(expresion)
+if __name__ == "__main__":
+    expresion = fun.leerER("output/final_infix.txt")
+    ERtoAFD(expresion)

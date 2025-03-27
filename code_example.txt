@@ -1,1 +1,8 @@
 hola123(+ a1 2a
+inicio
+abc123+(def*ghi) + jKl + (MNO*2pq)
+fin
+451.2E-22
+1E+2
+5.E-2
+6E

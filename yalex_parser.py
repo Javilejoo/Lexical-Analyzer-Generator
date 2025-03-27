@@ -1,3 +1,6 @@
+import sys
+import os
+os.makedirs("output", exist_ok=True)
 def yalex_parser(yalex):
     #Read the .yal file
     with open(yalex, 'r') as file:
@@ -132,7 +135,10 @@ def extraer_trailer(yalex_code):
 
 
 #NOMBRE YALEX
-yalex = 'yalexs/slr-3.yal'
+if len(sys.argv) > 1:
+    yalex = sys.argv[1]
+else:
+    yalex = 'yalexs/slr-2.yal'
 yalex_parser(yalex)
 
 header, expresiones, reglas, trailer = yalex_parser(yalex)
