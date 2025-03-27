@@ -31,12 +31,14 @@ def minimizar_AFD(afd):
 
     # Construcción del nuevo AFD minimizado
     estado_mapeo = {frozenset(particion): f"q{idx}" for idx, particion in enumerate(particiones)}
+    alfabeto_original = afd.get("alfabeto", set())
     
     nuevo_afd = {
         "estados": set(estado_mapeo.values()),
         "transiciones": {},
         "inicial": estado_mapeo[frozenset(encontrar_particion(afd["inicial"], particiones))],
-        "aceptacion": set()
+        "aceptacion": set(),
+        "alfabeto": alfabeto_original
     }
 
     for particion in particiones:
