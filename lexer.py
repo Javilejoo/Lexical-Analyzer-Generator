@@ -121,7 +121,7 @@ class Lexer:
                         if buffer.isdigit():
                             mejor_tipo = "NUMBER"
                         elif buffer.isalpha():
-                            mejor_tipo = "IDENTIFIER"
+                            mejor_tipo = "ID"
                         else:
                             mejor_tipo = "SYMBOL"
             else:
