@@ -31,3 +31,27 @@ def dibujar_AFD(afd, filename="afd"):
     # Guardar el archivo y renderizarlo
     dot.render(filename, format="png", cleanup=True)
     print(f"AFD guardado como {filename}.png")
+
+def dibujar_AFN(afn, nombre_archivo):
+    dot = graphviz.Digraph()
+    
+    # Configurar nodos
+    for estado in afn['estados']:
+        if estado == afn['inicial']:
+            dot.node(str(estado), color='green', style='filled', fillcolor='lightgreen', shape='circle')
+        elif estado in afn['aceptacion']:
+            dot.node(str(estado), color='red', style='filled', fillcolor='#ffcccc', shape='doublecircle')
+        else:
+            dot.node(str(estado), shape='circle')
+    
+    # Configurar transiciones
+    for estado_origen, transiciones in afn['transiciones'].items():
+        for simbolo, destinos in transiciones.items():
+            # Si 'destinos' no es iterable o es una cadena, convertirlo en un conjunto
+            if not isinstance(destinos, (set, list)):
+                destinos = {destinos}
+            for estado_destino in destinos:
+                dot.edge(str(estado_origen), str(estado_destino), label=simbolo)
+    
+    dot.render(nombre_archivo, format='png', cleanup=True)
+    return dot
