@@ -1,5 +1,5 @@
 # Función para minimizar un AFD
-def minimizar_AFD(afd):
+def minimizar_AFD(afd, offset=0):
     estados = set(afd["transiciones"].keys())
     aceptacion = set(afd["aceptacion"])
     no_aceptacion = estados - aceptacion
@@ -30,7 +30,7 @@ def minimizar_AFD(afd):
         particiones = nuevas_particiones
 
     # Construcción del nuevo AFD minimizado
-    estado_mapeo = {frozenset(particion): f"q{idx}" for idx, particion in enumerate(particiones)}
+    estado_mapeo = {frozenset(particion): f"q{offset + idx}" for idx, particion in enumerate(particiones)}
     alfabeto_original = afd.get("alfabeto", set())
     
     nuevo_afd = {
@@ -55,7 +55,7 @@ def minimizar_AFD(afd):
                 frozenset(encontrar_particion(destino, particiones))
             ]
 
-    return nuevo_afd
+    return nuevo_afd, offset + len(particiones)
 
 def encontrar_particion(estado, particiones):
     """Devuelve la partición (como frozenset) en la que se encuentra un estado."""
