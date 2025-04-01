@@ -2,12 +2,19 @@ import shuntingyard as sy
 import funciones as fun
 import estructuras
 import graphviz_utils as gv_utils
+import sys
+import io
 from nullableVisitor import NullableVisitor
 from firstPosVisitor import FirstPosVisitor
 from lastPosVisitor import LastPosVisitor
 from followPosVisitor import FollowPosVisitor
 from AFDGV import dibujar_AFD, dibujar_AFN
 from AFD_minimo import minimizar_AFD
+from subconjuntos import fromAFNToAFD
+
+# Configurar la codificación de salida a UTF-8
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 # Función para asignar pos_id de forma global usando un contador (offset)
 def assign_pos_ids(root, counter=1):
@@ -31,10 +38,10 @@ def ERtoAFD_por_regla(lista_expresiones, pos_counter_inicial=1):
         # Asegurarse de que la expresión tenga el símbolo final "#"
         if not expr.endswith("#"):
             expr = expr + "#"
-        print("Procesando regla:", expr)
+        print("Procesando regla:", expr.encode('utf-8').decode('utf-8'))
         # Convertir a postfix
         postfix = sy.convert_infix_to_postfix(expr)
-        print("Postfix:", postfix)
+        print("Postfix:", postfix.encode('utf-8').decode('utf-8'))
         # Construir el árbol de expresión (AST)
         root = estructuras.build_expression_tree(postfix)
         
@@ -128,7 +135,7 @@ def simular_afd(afd, cadena):
             return False
     return estado_actual in afd['aceptacion']
 
-# Función para unir los AFD minimizados individuales en un AFN global.
+# Función para unir los AFDs individuales en un AFN global.
 # Crea un nuevo estado inicial "S0" y agrega transiciones ε desde S0 a cada estado inicial individual.
 def unir_afd_individuales(afd_list):
     nuevo_inicial = "S0"
@@ -163,6 +170,61 @@ def procesar_reglas_y_generar_afd(rules_txt_file):
     afd_list, ultimo_contador = ERtoAFD_por_regla(reglas, pos_counter_inicial=1)
     return afd_list, ultimo_contador
 
+
+def convertir_afn_numerico(afn):
+    mapping = {}
+    new_transitions = {}
+    counter = 0
+    # Asignar un número a cada estado (se itera sobre los estados que aparecen en las transiciones)
+    for estado in afn["transiciones"]:
+        mapping[estado] = counter
+        counter += 1
+    # Convertir las transiciones
+    for estado, trans in afn["transiciones"].items():
+        new_estado = mapping[estado]
+        new_transitions[new_estado] = {}
+        for simbolo, targets in trans.items():
+            # targets es un conjunto de estados (ej.: {"q20", "q60", ...})
+            new_transitions[new_estado][simbolo] = {mapping[s] for s in targets}
+    new_inicial = mapping[afn["inicial"]]
+    new_accepted = {mapping[s] for s in afn["aceptacion"]}
+    return {"transitions": new_transitions, "aceptacion": new_accepted, "inicial": new_inicial}
+
+def normalizar_transiciones(afn):
+    for estado, trans in afn["transiciones"].items():
+        for simbolo, destino in trans.items():
+            if not isinstance(destino, set):
+                trans[simbolo] = {destino}
+    return afn
+
+def convertir_formato_afd(afd):
+    """
+    Convierte el formato de AFD devuelto por fromAFNToAFD al formato esperado por dibujar_AFD
+    """
+    estados = set()
+    # Agregar todos los estados que aparecen en las transiciones
+    for estado, transiciones in afd["transitions"].items():
+        estados.add(estado)
+        for _, destinos in transiciones.items():
+            if isinstance(destinos, (set, frozenset)):
+                estados.update(destinos)
+            else:
+                estados.add(destinos)
+    
+    # Asegurarnos de incluir el estado inicial y los estados de aceptación
+    estados.add(afd["inicial"])
+    if isinstance(afd["accepted"], (list, set, frozenset)):
+        estados.update(afd["accepted"])
+    else:
+        estados.add(afd["accepted"])
+    
+    return {
+        "estados": estados,
+        "transiciones": afd["transitions"],
+        "inicial": afd["inicial"],
+        "aceptacion": afd["accepted"]
+    }
+
 # Bloque principal
 if __name__ == "__main__":
     # Se asume que "output/final_infix.txt" contiene las reglas en el formato (regla)# (una regla por línea).
@@ -171,15 +233,24 @@ if __name__ == "__main__":
     print("Se generaron", len(afd_list), "AFDs individuales.")
     print("El contador global de estados final es:", ultimo_estado)
     
-    # Unir los AFD individuales en un AFN global
+    # Unir los AFDs en un AFN global
     afn_global = unir_afd_individuales(afd_list)
-    # Dibujar el AFN global con dibujar_AFN (definida en AFDGV.py)
-    dibujar_AFN(afn_global, "output/afn/afn_global")
+    print("\nSe generó el AFN global uniendo los AFDs individuales.")
     
-    print("AFN global generado:")
-    print("Estados:", afn_global["estados"])
-    print("Transiciones:", afn_global["transiciones"])
-    print("Estado inicial:", afn_global["inicial"])
-    print("Estados de aceptación:", afn_global["aceptacion"])
+    # Normalizar las transiciones del AFN global
+    afn_global = normalizar_transiciones(afn_global)
     
-    # Opcional: aquí podrías convertir el AFN global a un AFD global mediante el algoritmo de subconjuntos y luego minimizarlo.
+    # Convertir el AFN a formato numérico
+    afn_numerico = convertir_afn_numerico(afn_global)
+    print("\nAFN convertido a formato numérico para el algoritmo de subconjuntos.")
+    
+    # Convertir AFN a AFD usando el algoritmo de subconjuntos
+    afd_final = fromAFNToAFD(afn_numerico)
+    print("\nSe generó el AFD final usando el algoritmo de subconjuntos.")
+    
+    # Convertir el formato del AFD para la visualización
+    afd_final = convertir_formato_afd(afd_final)
+    
+    # Generar visualización del AFD final
+    dibujar_AFD(afd_final, "output/afd/afd_final_subconjuntos")
+    print("\nSe generó la visualización del AFD final en output/afd/afd_final_subconjuntos")
