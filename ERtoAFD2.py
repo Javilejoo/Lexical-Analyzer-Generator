@@ -318,6 +318,14 @@ if __name__ == "__main__":
     afn_global = unir_afd_individuales(afd_list)
     print("\nSe generó el AFN global uniendo los AFDs individuales.")
     
+    # Asegurar que el directorio output/afn existe
+    import os
+    os.makedirs("output/afn", exist_ok=True)
+    
+    # Visualizar el AFN global
+    dibujar_AFN(afn_global, "output/afn/afn_global")
+    print("AFN global dibujado en output/afn/afn_global.png")
+    
     # Normalizar las transiciones del AFN global
     afn_global = normalizar_transiciones(afn_global)
     
@@ -328,6 +336,26 @@ if __name__ == "__main__":
     # Convertir AFN a AFD usando el algoritmo de subconjuntos
     afd_final = fromAFNToAFD(afn_numerico)
     print("\nSe generó el AFD final usando el algoritmo de subconjuntos.")
+    
+    # El AFD devuelto por fromAFNToAFD no tiene el formato esperado por dibujar_AFD,
+    # por lo que primero necesitamos convertirlo
+    afd_inicial_formato = {
+        "estados": set(afd_final["transitions"].keys()),
+        "transiciones": afd_final["transitions"],
+        "inicial": afd_final["inicial"],
+        "aceptacion": afd_final.get("accepted", [])
+    }
+    
+    # Agregar todos los estados que aparecen en las transiciones
+    for _, transiciones in afd_final["transitions"].items():
+        for _, destinos in transiciones.items():
+            if isinstance(destinos, (set, frozenset)):
+                afd_inicial_formato["estados"].update(destinos)
+            else:
+                afd_inicial_formato["estados"].add(destinos)
+    
+    # Guardar versión inicial del AFD
+    dibujar_AFD(afd_inicial_formato, "output/afd/afd_inicial_subconjuntos")
     
     # Si el AFD no tiene estados de aceptación, asignar los estados que contengan algún estado de aceptación del AFN
     if "accepted" in afd_final and (not afd_final["accepted"] or len(afd_final["accepted"]) == 0):
@@ -346,7 +374,7 @@ if __name__ == "__main__":
     # Convertir el formato del AFD para la visualización
     afd_final = convertir_formato_afd(afd_final)
     
-    # Generar visualización del AFD final
+    # Generar visualización del AFD final después de la recuperación de estados
     dibujar_AFD(afd_final, "output/afd/afd_final_subconjuntos")
     print("\nSe generó la visualización del AFD final en output/afd/afd_final_subconjuntos")
     
