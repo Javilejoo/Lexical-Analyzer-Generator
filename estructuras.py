@@ -1,6 +1,6 @@
 
 class Node:
-    def __init__(self, value=None, left=None, right=None, pos_id=None):
+    def __init__(self, value=None, left=None, right=None, pos_id=None, tipo_token=None):
         self.value = value
         self.left = left
         self.right = right
@@ -8,6 +8,7 @@ class Node:
         self.nullable = False
         self.firstpos = set()
         self.lastpos = set()
+        self.tipo_token = None
 
     def __repr__(self):
         return f"Node({self.value}, id={self.pos_id}, nullable={self.nullable}, firstpos={self.firstpos}, lastpos={self.lastpos})"

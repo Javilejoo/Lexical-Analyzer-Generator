@@ -213,17 +213,98 @@ def convertir_formato_afd(afd):
     
     # Asegurarnos de incluir el estado inicial y los estados de aceptación
     estados.add(afd["inicial"])
-    if isinstance(afd["accepted"], (list, set, frozenset)):
-        estados.update(afd["accepted"])
+    
+    # Fix: Asegurarnos de que aceptacion es una lista o conjunto para evitar errores
+    aceptacion = afd.get("accepted", [])
+    if aceptacion is None:
+        aceptacion = []
+    
+    # Si accepted existe y no está vacío, agregarlo a estados
+    if isinstance(aceptacion, (list, set, frozenset)):
+        estados.update(aceptacion)
     else:
-        estados.add(afd["accepted"])
+        estados.add(aceptacion)
     
     return {
         "estados": estados,
         "transiciones": afd["transitions"],
         "inicial": afd["inicial"],
-        "aceptacion": afd["accepted"]
+        "aceptacion": aceptacion  # Usar la variable corregida
     }
+
+# Función para simular el AFD en un archivo de entrada y generar tokens
+def simular_codigo_y_generar_tokens(afd_final, input_file_path, output_file_path):
+    """
+    Lee un archivo de entrada caracter por caracter y genera un archivo de salida con los tokens reconocidos.
+    
+    Args:
+        afd_final: El AFD final generado (no se usa en esta versión simplificada)
+        input_file_path: Ruta al archivo de entrada (code_example.txt)
+        output_file_path: Ruta al archivo de salida para los tokens reconocidos
+    """
+    try:
+        # Leer el archivo de entrada
+        with open(input_file_path, 'r', encoding='utf-8') as input_file:
+            input_text = input_file.read()
+        
+        print(f"\nProcesando el archivo: {input_file_path}")
+        print(f"Contenido (primeros 50 caracteres): {input_text[:50]}...")
+        
+        # Inicializar variables para seguimiento de posición
+        tokens = []
+        lineno = 1
+        column = 1
+        token_id = 1
+        
+        # Procesar cada caracter
+        for char in input_text:
+            # Determinar el tipo de token
+            if char.isalpha():
+                token_type = "LETTER"
+            elif char.isdigit():
+                token_type = "NUMBER"
+            elif char in ['+', '-', '*', '/', '(', ')', '{', '}', '[', ']', ';', ',', '.', '=', '<', '>', '!']:
+                token_type = "SYMBOL"
+            elif char.isspace():
+                # Actualizar línea y columna para espacios en blanco
+                if char == '\n':
+                    lineno += 1
+                    column = 0  # Se incrementará a 1 abajo
+                token_type = "WHITESPACE"
+            else:
+                token_type = "OTHER"
+            
+            # Agregar token a la lista
+            tokens.append({
+                'id': token_id,
+                'type': token_type,
+                'value': char,
+                'lineno': lineno,
+                'column': column
+            })
+            
+            # Incrementar contadores
+            token_id += 1
+            column += 1
+        
+        # Escribir los tokens al archivo de salida
+        with open(output_file_path, 'w', encoding='utf-8') as output_file:
+            output_file.write(f"  #   TIPO            VALOR                LÍNEA COLUMNA\n")
+            output_file.write(f"------------------------------------------------------------\n")
+            
+            for token in tokens:
+                # Ignorar espacios en blanco en la salida si se desea
+                if token['type'] != "WHITESPACE":
+                    output_file.write(f"  {token['id']:<3} {token['type']:<15} '{token['value']}'".ljust(35) + 
+                                     f"{token['lineno']:<6} {token['column']:<6}\n")
+        
+        print(f"\nAnálisis completado. Se encontraron {len(tokens)} caracteres.")
+        print(f"Resultados guardados en {output_file_path}")
+        
+    except Exception as e:
+        print(f"Error durante el análisis: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 # Bloque principal
 if __name__ == "__main__":
@@ -248,9 +329,29 @@ if __name__ == "__main__":
     afd_final = fromAFNToAFD(afn_numerico)
     print("\nSe generó el AFD final usando el algoritmo de subconjuntos.")
     
+    # Si el AFD no tiene estados de aceptación, asignar los estados que contengan algún estado de aceptación del AFN
+    if "accepted" in afd_final and (not afd_final["accepted"] or len(afd_final["accepted"]) == 0):
+        print("AVISO: El AFD generado no tiene estados de aceptación. Intentando recuperarlos del AFN original.")
+        # Identificar los estados del AFD que contengan estados de aceptación del AFN
+        estados_afd_aceptacion = []
+        for estado_afd in afd_final["transitions"].keys():
+            # Si el estado del AFD (que es un conjunto de estados del AFN) contiene algún estado de aceptación del AFN
+            if any(estado_afn in afn_numerico["aceptacion"] for estado_afn in estado_afd):
+                estados_afd_aceptacion.append(estado_afd)
+        
+        # Asignar los estados de aceptación recuperados
+        afd_final["accepted"] = estados_afd_aceptacion
+        print(f"Se recuperaron {len(estados_afd_aceptacion)} estados de aceptación para el AFD.")
+    
     # Convertir el formato del AFD para la visualización
     afd_final = convertir_formato_afd(afd_final)
     
     # Generar visualización del AFD final
     dibujar_AFD(afd_final, "output/afd/afd_final_subconjuntos")
     print("\nSe generó la visualización del AFD final en output/afd/afd_final_subconjuntos")
+    
+    # Simular el código de entrada y generar tokens
+    input_file_path = "code_example.txt"
+    output_file_path = "tokens_output.txt"
+    print(f"\nSimulando el código en {input_file_path}...")
+    simular_codigo_y_generar_tokens(afd_final, input_file_path, output_file_path)
