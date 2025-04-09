@@ -6,13 +6,13 @@ def cal_first(s, productions, memo={}):
 
     for production in productions[s]:
         for i, symbol in enumerate(production):
-            if symbol == 'ε':
+            if symbol == 'ε': # si x --> ε, entonces first{X} = {ε}
                 first.add('ε')
                 break
-            elif not symbol.isupper():  # Terminal
+            elif not symbol.isupper():  # si X es un terminal first{X} = {X}
                 first.add(symbol)
                 break
-            else:  # No terminal
+            else:  # No terminal 
                 f = cal_first(symbol, productions, memo)
                 first.update(f - {'ε'})
                 if 'ε' not in f:
