@@ -6,7 +6,7 @@ def cal_first(s, productions, memo={}):
 
     for production in productions[s]:
         for i, symbol in enumerate(production):
-            if symbol == 'e':  # Epsilon (representado como 'e' en el archivo)
+            if symbol == 'ε':
                 first.add('ε')
                 break
             elif not symbol.isupper():  # Terminal
@@ -17,8 +17,9 @@ def cal_first(s, productions, memo={}):
                 first.update(f - {'ε'})
                 if 'ε' not in f:
                     break
-                elif i == len(production) - 1:
-                    first.add('ε')
+        else:
+            # Si todos los símbolos en la producción derivan ε
+            first.add('ε')
 
     memo[s] = first
     return first
