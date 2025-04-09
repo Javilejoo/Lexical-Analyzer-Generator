@@ -1,133 +1,104 @@
-import re
+def cal_first(s, productions, memo={}):
+    if s in memo:
+        return memo[s]
 
-def cal_follow(s, productions, first):
-    follow = set()
-    if len(s)!=1 :
-        return {}
-    if(s == list(productions.keys())[0]):
-        follow.add('$') 
-    
-    for i in productions:
-        for j in range(len(productions[i])):
-            if(s in productions[i][j]):
-                idx = productions[i][j].index(s)
-                
-                if(idx == len(productions[i][j])-1):
-                    if(productions[i][j][idx] == i):
-                        break
-                    else:
-                        f = cal_follow(i, productions, first)
-                        for x in f:
-                            follow.add(x)
-                else:
-                    while(idx != len(productions[i][j]) - 1):
-                        idx += 1
-                        if(not productions[i][j][idx].isupper()):
-                            follow.add(productions[i][j][idx])
-                            break
-                        else:
-                            f = cal_first(productions[i][j][idx], productions)
-                            
-                            if('ε' not in f):
-                                for x in f:
-                                    follow.add(x)
-                                break
-                            elif('ε' in f and idx != len(productions[i][j])-1):
-                                f.remove('ε')
-                                for k in f:
-                                    follow.add(k)
-                            
-                            elif('ε' in f and idx == len(productions[i][j])-1):
-                                f.remove('ε')
-                                for k in f:
-                                    follow.add(k)
-                                
-                                f = cal_follow(i, productions, first)
-                                for x in f:
-                                    follow.add(x)
-                            
-    return follow
-   
-def cal_first(s, productions):
-    
     first = set()
-    
-    for i in range(len(productions[s])):
-        
-        for j in range(len(productions[s][i])):
-            
-            c = productions[s][i][j]
-            
-            if(c.isupper()):
-                f = cal_first(c, productions)
-                if('ε' not in f):
-                    for k in f:
-                        first.add(k)
-                    break
-                else:
-                    if(j == len(productions[s][i])-1):
-                        for k in f:
-                            first.add(k)
-                    else:
-                        f.remove('ε')
-                        for k in f:
-                            first.add(k)
-            else:
-                first.add(c)
+
+    for production in productions[s]:
+        for i, symbol in enumerate(production):
+            if symbol == 'e':  # Epsilon (representado como 'e' en el archivo)
+                first.add('ε')
                 break
-                
+            elif not symbol.isupper():  # Terminal
+                first.add(symbol)
+                break
+            else:  # No terminal
+                f = cal_first(symbol, productions, memo)
+                first.update(f - {'ε'})
+                if 'ε' not in f:
+                    break
+                elif i == len(production) - 1:
+                    first.add('ε')
+
+    memo[s] = first
     return first
-                       
-def main():
+
+
+def cal_follow(productions, first_dict):
+    follow = {nt: set() for nt in productions}
+
+    # Agregar $ al símbolo inicial
+    start_symbol = list(productions.keys())[0]
+    follow[start_symbol].add('$')
+
+    updated = True
+    while updated:
+        updated = False
+        for head, rules in productions.items():
+            for rule in rules:
+                for i, symbol in enumerate(rule):
+                    if symbol in productions:  # solo no terminales
+                        follow_before = follow[symbol].copy()
+
+                        # Caso 1: símbolo seguido por otros
+                        if i + 1 < len(rule):
+                            next_sym = rule[i + 1]
+
+                            # Si next es terminal
+                            if next_sym not in productions:
+                                follow[symbol].add(next_sym)
+                            else:
+                                first_of_next = first_dict[next_sym]
+                                follow[symbol].update(first_of_next - {'ε'})
+
+                                if 'ε' in first_of_next:
+                                    follow[symbol].update(follow[head])
+                        else:
+                            # Caso 2: símbolo al final de producción
+                            follow[symbol].update(follow[head])
+
+                        if follow_before != follow[symbol]:
+                            updated = True
+    return follow
+
+
+
+def parse_grammar(file_path):
     productions = {}
-    grammar = open("grammar.txt", "r")
-    
+    with open(file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            left, right = line.split("->")
+            left = left.strip()
+            alternatives = right.split('|')
+            rules = []
+            for alt in alternatives:
+                symbols = alt.strip().split()
+                rules.append(symbols)
+            productions[left] = rules
+    return productions
+
+
+def main():
+    grammar_path = "first_follow/grammar.txt"
+    productions = parse_grammar(grammar_path)
+
     first = {}
-    follow = {}
-    
-    for prod in grammar:
-        l = re.split("( /->/\n/)*", prod)
-        m = []
-        for i in l:
-            if (i == "" or i == None or i == '\n' or i == " " or i == "-" or i == ">"):
-                pass
-            else:
-                m.append(i)
-        
-        left_prod = m.pop(0)
-        right_prod = []
-        t = []
-        
-        for j in m:
-            if(j != '|'):
-                t.append(j)
-            else:
-                right_prod.append(t)
-                t = []
-        
-        right_prod.append(t)
-        productions[left_prod] = right_prod
-    
-    for s in productions.keys():
-        first[s] = cal_first(s, productions)
-    
-    print("*****FIRST*****")
+    for non_terminal in productions:
+        first[non_terminal] = cal_first(non_terminal, productions)
+
+    print("***** FIRST *****")
     for lhs, rhs in first.items():
-        print(lhs, ":" , rhs)
-    
-    print("")
-    
-    for lhs in productions:
-        follow[lhs] = set()
-    
-    for s in productions.keys():
-        follow[s] = cal_follow(s, productions, first)
-    
-    print("*****FOLLOW*****")
+        print(lhs, ":", rhs)
+
+    follow = cal_follow(productions, first)
+
+    print("\n***** FOLLOW *****")
     for lhs, rhs in follow.items():
-        print(lhs, ":" , rhs)
-    
-    grammar.close()
+        print(lhs, ":", rhs)
+
 
 if __name__ == "__main__":
     main()
