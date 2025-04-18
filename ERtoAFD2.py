@@ -29,6 +29,14 @@ def assign_pos_ids(root, counter=1):
         return counter
     return traverse(root, counter)
 
+def asignar_token_type_a_nodo_final(node, token_type):
+    if node is None:
+        return
+    if node.left is None and node.right is None and node.value == '#':
+        node.tipo_token = token_type
+    asignar_token_type_a_nodo_final(node.left, token_type)
+    asignar_token_type_a_nodo_final(node.right, token_type)
+
 # Procesa una lista de expresiones (cada una es una regla en formato "(regla)#")
 # y genera el AFD minimizado para cada regla, actualizando el contador global de pos_id.
 def ERtoAFD_por_regla(lista_expresiones, pos_counter_inicial=1):
@@ -36,14 +44,18 @@ def ERtoAFD_por_regla(lista_expresiones, pos_counter_inicial=1):
     pos_counter = pos_counter_inicial
     for expr in lista_expresiones:
         # Asegurarse de que la expresión tenga el símbolo final "#"
-        if not expr.endswith("#"):
-            expr = expr + "#"
-        print("Procesando regla:", expr.encode('utf-8').decode('utf-8'))
+        corte = expr.find("#") + 1
+        if corte == 0:
+            continue
+        expr_solo = expr[:corte]
+        nombre_token = expr[corte:].replace("-->", "").strip()
+        print("Procesando regla:", expr_solo.encode('utf-8').decode('utf-8'))
         # Convertir a postfix
-        postfix = sy.convert_infix_to_postfix(expr)
+        postfix = sy.convert_infix_to_postfix(expr_solo)
         print("Postfix:", postfix.encode('utf-8').decode('utf-8'))
         # Construir el árbol de expresión (AST)
         root = estructuras.build_expression_tree(postfix)
+        asignar_token_type_a_nodo_final(root, nombre_token)
         
         # Asignar pos_id globalmente usando assign_pos_ids
         pos_counter = assign_pos_ids(root, pos_counter)
@@ -54,17 +66,23 @@ def ERtoAFD_por_regla(lista_expresiones, pos_counter_inicial=1):
             root.accept(visitor)
         followpos_table = visitors[3].get_followpos_table()
         
-        # (Opcional) Generar imagen del árbol de expresión para esta regla
+        # Generar imagen del árbol de expresión para esta regla
         gv_utils.generate_expression_tree_image(root, f"output/trees/expression_tree_rule_{pos_counter}.png")
         print("Árbol de expresión generado para regla.")
         
         # Construir el AFD a partir del árbol y la tabla followpos
         afd = construir_afd(root, followpos_table)
+        afd["token_type_map"] = {}
+        for estado in afd["aceptacion"]:
+            afd["token_type_map"][estado] = nombre_token
+
         # Minimizar el AFD; minimizar_AFD devuelve (afd_min, nuevo_offset)
-        afd_min, pos_counter = minimizar_AFD(afd, pos_counter)
+        afd_min, pos_counter, estado_a_token_min = minimizar_AFD(afd, pos_counter)
+        #afd_min["token_type"] = nombre_token
+        print(f"Estados de aceptación para token '{nombre_token}': {afd_min['aceptacion']}")
         # Dibujar el AFD minimizado
-        dibujar_AFD(afd_min, f"output/afd/afd_min_rule_{pos_counter}")
-        afd_list.append(afd_min)
+        dibujar_AFD(afd_min, f"output/afd/afd_min_rule_{pos_counter}", token_type=estado_a_token_min)
+        afd_list.append((afd_min, nombre_token))
     return afd_list, pos_counter
 
 # Función para construir el AFD (sin minimizar) a partir del AST y la tabla followpos
@@ -138,6 +156,7 @@ def simular_afd(afd, cadena):
 # Función para unir los AFDs individuales en un AFN global.
 # Crea un nuevo estado inicial "S0" y agrega transiciones ε desde S0 a cada estado inicial individual.
 def unir_afd_individuales(afd_list):
+    estado_a_token = {}
     nuevo_inicial = "S0"
     afn_global = {
         "estados": {nuevo_inicial},
@@ -149,7 +168,7 @@ def unir_afd_individuales(afd_list):
     epsilon = 'ε'
     afn_global["transiciones"][nuevo_inicial] = {epsilon: set()}
     
-    for afd in afd_list:
+    for afd, token_name in afd_list:
         afn_global["estados"].update(afd["estados"])
         afn_global["alfabeto"].update(afd["alfabeto"])
         for estado, trans in afd["transiciones"].items():
@@ -157,11 +176,13 @@ def unir_afd_individuales(afd_list):
                 afn_global["transiciones"][estado].update(trans)
             else:
                 afn_global["transiciones"][estado] = trans.copy()
-        afn_global["aceptacion"].update(afd["aceptacion"])
+        for estado_aceptacion in afd["aceptacion"]:
+            estado_a_token[estado_aceptacion] = token_name
+            afn_global["aceptacion"].add(estado_aceptacion)
         # Conectar S0 (nuevo_inicial) con el estado inicial de este AFD individual
         afn_global["transiciones"][nuevo_inicial][epsilon].add(afd["inicial"])
     
-    return afn_global
+    return afn_global, estado_a_token
 
 # Función para procesar las reglas desde un archivo txt (cada línea en formato "(regla)#")
 def procesar_reglas_y_generar_afd(rules_txt_file):
@@ -188,7 +209,7 @@ def convertir_afn_numerico(afn):
             new_transitions[new_estado][simbolo] = {mapping[s] for s in targets}
     new_inicial = mapping[afn["inicial"]]
     new_accepted = {mapping[s] for s in afn["aceptacion"]}
-    return {"transitions": new_transitions, "aceptacion": new_accepted, "inicial": new_inicial}
+    return {"transitions": new_transitions, "aceptacion": new_accepted, "inicial": new_inicial}, mapping
 
 def normalizar_transiciones(afn):
     for estado, trans in afn["transiciones"].items():
@@ -232,79 +253,50 @@ def convertir_formato_afd(afd):
         "aceptacion": aceptacion  # Usar la variable corregida
     }
 
-# Función para simular el AFD en un archivo de entrada y generar tokens
-def simular_codigo_y_generar_tokens(afd_final, input_file_path, output_file_path):
-    """
-    Lee un archivo de entrada caracter por caracter y genera un archivo de salida con los tokens reconocidos.
-    
-    Args:
-        afd_final: El AFD final generado (no se usa en esta versión simplificada)
-        input_file_path: Ruta al archivo de entrada (code_example.txt)
-        output_file_path: Ruta al archivo de salida para los tokens reconocidos
-    """
-    try:
-        # Leer el archivo de entrada
-        with open(input_file_path, 'r', encoding='utf-8') as input_file:
-            input_text = input_file.read()
-        
-        print(f"\nProcesando el archivo: {input_file_path}")
-        print(f"Contenido (primeros 50 caracteres): {input_text[:50]}...")
-        
-        # Inicializar variables para seguimiento de posición
-        tokens = []
-        lineno = 1
-        column = 1
-        token_id = 1
-        
-        # Procesar cada caracter
-        for char in input_text:
-            # Determinar el tipo de token
-            if char.isalpha():
-                token_type = "LETTER"
-            elif char.isdigit():
-                token_type = "NUMBER"
-            elif char in ['+', '-', '*', '/', '(', ')', '{', '}', '[', ']', ';', ',', '.', '=', '<', '>', '!']:
-                token_type = "SYMBOL"
-            elif char.isspace():
-                # Actualizar línea y columna para espacios en blanco
-                if char == '\n':
-                    lineno += 1
-                    column = 0  # Se incrementará a 1 abajo
-                token_type = "WHITESPACE"
-            else:
-                token_type = "OTHER"
-            
-            # Agregar token a la lista
-            tokens.append({
-                'id': token_id,
-                'type': token_type,
-                'value': char,
-                'lineno': lineno,
-                'column': column
-            })
-            
-            # Incrementar contadores
-            token_id += 1
-            column += 1
-        
-        # Escribir los tokens al archivo de salida
-        with open(output_file_path, 'w', encoding='utf-8') as output_file:
-            output_file.write(f"  #   TIPO            VALOR                LÍNEA COLUMNA\n")
-            output_file.write(f"------------------------------------------------------------\n")
-            
-            for token in tokens:
-                # Ignorar espacios en blanco en la salida si se desea
-                if token['type'] != "WHITESPACE":
-                    output_file.write(f"  {token['id']:<3} {token['type']:<15} '{token['value']}'".ljust(35) + 
-                                     f"{token['lineno']:<6} {token['column']:<6}\n")
-        
-        print(f"\nAnálisis completado. Se encontraron {len(tokens)} caracteres.")
-        print(f"Resultados guardados en {output_file_path}")
-        
-    except Exception as e:
-        print(f"Error durante el análisis: {str(e)}")
-        import traceback
-        traceback.print_exc()
+def simular_codigo_con_tokens(afd, estado_a_token, archivo_entrada, archivo_salida):
+    with open(archivo_entrada, "r", encoding="utf-8") as f:
+        codigo = f.read()
+
+    resultado = []
+    i = 0
+    while i < len(codigo):
+        estado_actual = afd["inicial"]
+        lexema = ""
+        ultimo_token = None
+        ultimo_pos = i
+
+        j = i
+        while j < len(codigo):
+            simbolo = codigo[j]
+
+            transiciones = afd["transiciones"].get(estado_actual, {})
+            siguiente_estado = transiciones.get(simbolo)
+
+            if siguiente_estado is None:
+                break
+
+            estado_actual = siguiente_estado
+            lexema += simbolo
+
+            if estado_actual in afd["aceptacion"]:
+                ultimo_token = estado_a_token.get(estado_actual, "UNKNOWN")
+                ultimo_pos = j + 1  # Guarda el último índice válido
+
+            j += 1
+
+        if ultimo_token:
+            resultado.append((lexema, ultimo_token))
+            i = ultimo_pos  # Avanza hasta el final del token reconocido
+        else:
+            resultado.append((codigo[i], "ERROR"))
+            i += 1
+
+    # Escribir en archivo
+    with open(archivo_salida, "w", encoding="utf-8") as f:
+        for lexema, token in resultado:
+            f.write(f"{token:<15} {lexema!r}\n")
+
+    print(f"\nTokens escritos en {archivo_salida}")
 
 # Bloque principal
 if __name__ == "__main__":
@@ -315,7 +307,10 @@ if __name__ == "__main__":
     print("El contador global de estados final es:", ultimo_estado)
     
     # Unir los AFDs en un AFN global
-    afn_global = unir_afd_individuales(afd_list)
+    afn_global, estado_a_token = unir_afd_individuales(afd_list)
+    print("\nEstados de aceptación del AFN global:")
+    print(afn_global["aceptacion"])
+
     print("\nSe generó el AFN global uniendo los AFDs individuales.")
     
     # Asegurar que el directorio output/afn existe
@@ -323,18 +318,19 @@ if __name__ == "__main__":
     os.makedirs("output/afn", exist_ok=True)
     
     # Visualizar el AFN global
-    dibujar_AFN(afn_global, "output/afn/afn_global")
+    dibujar_AFN(afn_global, "output/afn/afn_global", estado_a_token)
     print("AFN global dibujado en output/afn/afn_global.png")
     
     # Normalizar las transiciones del AFN global
     afn_global = normalizar_transiciones(afn_global)
     
     # Convertir el AFN a formato numérico
-    afn_numerico = convertir_afn_numerico(afn_global)
+    afn_numerico, mapping = convertir_afn_numerico(afn_global)
     print("\nAFN convertido a formato numérico para el algoritmo de subconjuntos.")
     
     # Convertir AFN a AFD usando el algoritmo de subconjuntos
     afd_final = fromAFNToAFD(afn_numerico)
+    print("Los estados finales son:", afd_final["accepted"])
     print("\nSe generó el AFD final usando el algoritmo de subconjuntos.")
     
     # El AFD devuelto por fromAFNToAFD no tiene el formato esperado por dibujar_AFD,
@@ -350,10 +346,13 @@ if __name__ == "__main__":
     for _, transiciones in afd_final["transitions"].items():
         for _, destinos in transiciones.items():
             if isinstance(destinos, (set, frozenset)):
-                afd_inicial_formato["estados"].update(destinos)
+               for s in destinos:
+                    afd_inicial_formato["estados"].add(frozenset([s]) if isinstance(s, int) else s)
             else:
-                afd_inicial_formato["estados"].add(destinos)
-    
+                afd_inicial_formato["estados"].add(frozenset([destinos]) if isinstance(destinos, int) else destinos)
+
+    afd_inicial_formato["estados"] = {e for e in afd_inicial_formato["estados"] if isinstance(e, frozenset)}
+
     # Guardar versión inicial del AFD
     dibujar_AFD(afd_inicial_formato, "output/afd/afd_inicial_subconjuntos")
     
@@ -373,13 +372,53 @@ if __name__ == "__main__":
     
     # Convertir el formato del AFD para la visualización
     afd_final = convertir_formato_afd(afd_final)
+    afd_final["estados"] = {e for e in afd_final["estados"] if isinstance(e, frozenset)}
+
+    afd_final["transiciones"] = {
+    k: v for k, v in afd_final["transiciones"].items() if isinstance(k, frozenset)}
+
+    mapping_invertido = {v: k for k, v in mapping.items()}
+    estado_final_con_token_nuevo = {}
+    for estado in afd_final["aceptacion"]:
+        if isinstance(estado, (set, frozenset)):
+            for subestado in estado:
+                nombre_original = mapping_invertido.get(subestado)
+                if nombre_original in estado_a_token:
+                    estado_final_con_token_nuevo[estado] = estado_a_token[nombre_original]
+                    break
     
+    afd_final["token_type_map"] = estado_final_con_token_nuevo
+    print("\n🎯 Verificación de estados de aceptación y tokens en afd_final:")
+    for estado in afd_final["aceptacion"]:
+        token = estado_final_con_token_nuevo.get(estado, "NO TOKEN")
+        print(f"Estado: {estado} -> Token: {token}")
+
+    print("\n📦 Contenido completo del AFD final (afd_final):\n")
+
+    print("🔹 Estados:")
+    for estado in afd_final["estados"]:
+        print(f"  {estado}")
+
+    print("\n🔹 Estado inicial:")
+    print(f"  {afd_final['inicial']}")
+
+    print("\n🔹 Estados de aceptación:")
+    for estado in afd_final["aceptacion"]:
+        print(f"  {estado}")
+
+    print("\n🔹 Transiciones:")
+    for origen, transiciones in afd_final["transiciones"].items():
+        for simbolo, destino in transiciones.items():
+            print(f"  {origen} --{simbolo}--> {destino}")
+
+    # Si tienes token_type_map asociado
+    if "token_type_map" in afd_final:
+        print("\n🔹 Token type por estado de aceptación:")
+        for estado, token in afd_final["token_type_map"].items():
+            print(f"  {estado} => {token}")
+
     # Generar visualización del AFD final después de la recuperación de estados
-    dibujar_AFD(afd_final, "output/afd/afd_final_subconjuntos")
+    dibujar_AFD(afd_final, "output/afd/afd_final_subconjuntos",  token_type=estado_final_con_token_nuevo)
     print("\nSe generó la visualización del AFD final en output/afd/afd_final_subconjuntos")
-    
-    # Simular el código de entrada y generar tokens
-    input_file_path = "code_example.txt"
-    output_file_path = "tokens_output.txt"
-    print(f"\nSimulando el código en {input_file_path}...")
-    simular_codigo_y_generar_tokens(afd_final, input_file_path, output_file_path)
+    simular_codigo_con_tokens(afd_final, estado_a_token, "code_example.txt", "tokens_output.txt")
+

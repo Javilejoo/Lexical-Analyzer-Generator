@@ -11,7 +11,10 @@ def generate_expression_tree_image(root, filename):
             if is_operator or is_epsilon:
                 label = f"{node.value}\n(nullable={node.nullable}\n(firstpos={node.firstpos}\n(lastpos={node.lastpos})"
             else: 
-                label = f"{node.value}\n(pos={node.pos_id})\n(nullable={node.nullable}\n(firstpos={node.firstpos}\n(lastpos={node.lastpos})"
+                if node.tipo_token:
+                    label = f"{node.value}\nTOKEN: {node.tipo_token}\n(pos={node.pos_id})\n(nullable={node.nullable}\n(firstpos={node.firstpos}\n(lastpos={node.lastpos})"
+                else:
+                    label = f"{node.value}\n(pos={node.pos_id})\n(nullable={node.nullable}\n(firstpos={node.firstpos}\n(lastpos={node.lastpos})"
             dot.node(str(id(node)), label=label)
 
             if node.left:

@@ -4,19 +4,19 @@ header:
 EXPRESIONES ENCONTRADAS:
 let delim = ["\s\t\n"]
 let ws = delim+
-let letter = ['A'-'C''a'-'z']
-let digit = ['0'-'9']
+let letter = ['A'-'C''a'-'c']
+let digit = ['0'-'3']
 let digits = digit+
 let id = letter(letter|digit)*
 let number = digits(.digits)?('E'['+''-']?digits)?
 
 REGLAS ENCONTRADAS:
-ws        { return WHITESPACE }
+ws        { return ws }
 | id        { return ID }
 | number    { return NUMBER }
-| '+'       { return PLUS }
+| '+'       { return sumar }
 | '-'       { return MINUS }
-| '*'       { return TIMES }
+| '*'       { return multiplicar }
 | '/'       { return DIV }
 | '('       { return LPAREN }
 | ')'       { return RPAREN }
