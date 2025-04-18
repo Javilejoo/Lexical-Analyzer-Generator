@@ -1,8 +1,8 @@
-hola123(+ a1 2a
-inicio
-abc123+(def*ghi) + jKl + (MNO*2pq)
-fin
-451.2E-22
-1E+2
-5.E-2
+6
+6E2  
 6E
+6E+
+5.2
+5.
+E2
+var1

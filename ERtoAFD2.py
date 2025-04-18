@@ -264,6 +264,7 @@ def simular_codigo_con_tokens(afd, estado_a_token, archivo_entrada, archivo_sali
         lexema = ""
         ultimo_token = None
         ultimo_pos = i
+        estado_antes = estado_actual
 
         j = i
         while j < len(codigo):
@@ -279,19 +280,18 @@ def simular_codigo_con_tokens(afd, estado_a_token, archivo_entrada, archivo_sali
             lexema += simbolo
 
             if estado_actual in afd["aceptacion"]:
-                ultimo_token = estado_a_token.get(estado_actual, "UNKNOWN")
-                ultimo_pos = j + 1  # Guarda el último índice válido
+                ultimo_token = afd.get("token_type_map", {}).get(estado_actual, "UNKNOWN")
+                ultimo_pos = j + 1  # guarda el último punto válido
 
             j += 1
 
         if ultimo_token:
-            resultado.append((lexema, ultimo_token))
-            i = ultimo_pos  # Avanza hasta el final del token reconocido
+            resultado.append((codigo[i:ultimo_pos], ultimo_token))
+            i = ultimo_pos
         else:
             resultado.append((codigo[i], "ERROR"))
             i += 1
 
-    # Escribir en archivo
     with open(archivo_salida, "w", encoding="utf-8") as f:
         for lexema, token in resultado:
             f.write(f"{token:<15} {lexema!r}\n")
