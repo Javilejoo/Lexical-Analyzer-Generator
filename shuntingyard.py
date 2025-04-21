@@ -189,11 +189,23 @@ def convert_infix_to_postfix(expresion):
     return postfix
 
 if __name__ == '__main__':
-    infix = "((' '|'!'|'"'|'#'|'$'|'%'|'&'|'''|'('|')'|'*'|'+'|','|'-'|'.'|'/'|'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|':'|';'|'<'|'='|'>'|'?'|'@'|'A'|'B'|'C'|'D'|'E'|'F'|'G'|'H'|'I'|'J'|'K'|'L'|'M'|'N'|'O'|'P'|'Q'|'R'|'S'|'T'|'U'|'V'|'W'|'X'|'Y'|'Z'|'['|'\'|']'|'^'|'_'|'`'|'a'|'b'|'c'|'d'|'e'|'f'|'g'|'h'|'i'|'j'|'k'|'l'|'m'|'n'|'o'|'p'|'q'|'r'|'s'|'t'|'u'|'v'|'w'|'x'|'y'|'z'|'{'|'|'|'}'|'~'))*"
-    print(f"Infix: {infix}")
-    expandir = expand_operators(infix)
-    print(f"Expandida: {expandir}")
-    postfix = convert_infix_to_postfix(infix)
-    print(f"Postfix: {postfix}")
+    with open('output/final_infix.txt', 'r') as file:
+        expresiones = file.readlines()
+        print("Expresiones infix leídas del archivo:")
+        for exp in expresiones:
+            exp = exp.strip()
+            if not exp:
+                continue
+            try:
+                # Recortar solo la parte de la expresión infix (hasta el primer '#')
+                corte = exp.find('#') + 1
+                if corte == 0:
+                    continue  # si no hay '#', saltamos
+                solo_infix = exp[:corte]
 
+                postfix = convert_infix_to_postfix(solo_infix)
+                print(f"{exp} -> {postfix}")
+            except Exception as e:
+                print(f"Error procesando la expresión '{exp}': {e}")
 
+    print("\nFin del procesamiento.")

@@ -1,5 +1,6 @@
 # Función para minimizar un AFD
-def minimizar_AFD(afd):
+def minimizar_AFD(afd, offset=0):
+    estado_a_token_min = {}
     estados = set(afd["transiciones"].keys())
     aceptacion = set(afd["aceptacion"])
     no_aceptacion = estados - aceptacion
@@ -30,7 +31,7 @@ def minimizar_AFD(afd):
         particiones = nuevas_particiones
 
     # Construcción del nuevo AFD minimizado
-    estado_mapeo = {frozenset(particion): f"q{idx}" for idx, particion in enumerate(particiones)}
+    estado_mapeo = {frozenset(particion): f"q{offset + idx}" for idx, particion in enumerate(particiones)}
     alfabeto_original = afd.get("alfabeto", set())
     
     nuevo_afd = {
@@ -48,6 +49,9 @@ def minimizar_AFD(afd):
         if representativo in aceptacion:
             nuevo_afd["aceptacion"].add(nuevo_estado)
 
+            token_type = afd.get("token_type_map", {}).get(representativo)
+            if token_type:
+                estado_a_token_min[nuevo_estado] = token_type
         nuevo_afd["transiciones"][nuevo_estado] = {}
 
         for simbolo, destino in afd["transiciones"].get(representativo, {}).items():
@@ -55,7 +59,7 @@ def minimizar_AFD(afd):
                 frozenset(encontrar_particion(destino, particiones))
             ]
 
-    return nuevo_afd
+    return nuevo_afd, offset + len(particiones), estado_a_token_min
 
 def encontrar_particion(estado, particiones):
     """Devuelve la partición (como frozenset) en la que se encuentra un estado."""

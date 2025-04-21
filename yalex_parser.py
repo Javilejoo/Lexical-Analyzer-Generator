@@ -447,27 +447,28 @@ def procesar_reglas(reglas, definiciones_expandidas):
     return reglas_procesadas
 
 def generar_expresion_infix(reglas_procesadas):
-    """Genera la gran expresión infix final, protegiendo los literales especiales."""
-    especiales = {'+', '-', '*', '/', '(', ')', '|', '?', ':', ';', '='}
+    """Genera la gran expresión infix final con anotación del token."""
+    especiales = {'+', '-', '*', '/', '(', ')', '|', '?', ':', ';', '=', '<'}
     expresiones = []
 
     for regla in reglas_procesadas:
         if '=' in regla:
-            _, expr = regla.split('=', 1)
+            token_part, expr = regla.split('=', 1)
+            token = token_part.replace('->', '').strip()
             expr = expr.strip()
             # Revisar si la expresión es un literal especial y protegerlo
             if expr in especiales:
-                expresiones.append(f"'{expr}'")
+                expresiones.append(f"('{expr}')# --> {token}")
             else:
-                expresiones.append(expr)
+                expresiones.append(f"({expr})# --> {token}")
 
-    # Unir todo con '|'
-    return '|'.join(expresiones)
+    return '\n'.join(expresiones)
 
-def generar_final_infix_total(reglas_procesadas, definiciones_expandidas):
+
+def generar_final_infix_total(reglas_procesadas):
 
     reglas_expr = generar_expresion_infix(reglas_procesadas) 
-    final_expr = f"({reglas_expr})"
+    final_expr = f"{reglas_expr}"
     # Englobar toda la expresión entre paréntesis
     
     return final_expr
@@ -477,7 +478,6 @@ with open('output/info_current_yal.txt', 'r', encoding='utf-8') as f:
 
 # Extraer solo la sección de expresiones
 expresiones = extraer_expresiones_del_txt(contenido)
-
 # Convertir a diccionario de definiciones
 definiciones = procesar_expresiones(expresiones)
 
@@ -509,7 +509,7 @@ with open('output/processed_definitions.txt', 'w', encoding='utf-8') as f:
 with open('output/final_infix.txt', 'w', encoding='utf-8') as f:
     f.write(infix_final)
 
-infix_final = generar_final_infix_total(reglas_procesadas, expandidas)
+infix_final = generar_final_infix_total(reglas_procesadas)
 infix_final = convertir_puntos_a_literal(infix_final)
 
 with open('output/final_infix.txt', 'w', encoding='utf-8') as f:
