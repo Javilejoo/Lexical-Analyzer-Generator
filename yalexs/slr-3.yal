@@ -9,7 +9,7 @@ let digits = digit+
 let number = digits(.digits)?('E'['+''-']?digits)?
 
 rule tokens = 
-    ws                      (* Cambie por una acción válida, que devuelva el token *)
+    ws        { return WS}             (* Cambie por una acción válida, que devuelva el token *)
   | number    { return NUMBER }
   | '+'       { return PLUS }
   | '*'       { return TIMES }

@@ -388,37 +388,20 @@ if __name__ == "__main__":
                     break
     
     afd_final["token_type_map"] = estado_final_con_token_nuevo
-    print("\n🎯 Verificación de estados de aceptación y tokens en afd_final:")
+    print("\nVerificación de estados de aceptación y tokens en afd_final:")
     for estado in afd_final["aceptacion"]:
         token = estado_final_con_token_nuevo.get(estado, "NO TOKEN")
         print(f"Estado: {estado} -> Token: {token}")
 
-    print("\n📦 Contenido completo del AFD final (afd_final):\n")
-
-    print("🔹 Estados:")
-    for estado in afd_final["estados"]:
-        print(f"  {estado}")
-
-    print("\n🔹 Estado inicial:")
-    print(f"  {afd_final['inicial']}")
-
-    print("\n🔹 Estados de aceptación:")
-    for estado in afd_final["aceptacion"]:
-        print(f"  {estado}")
-
-    print("\n🔹 Transiciones:")
-    for origen, transiciones in afd_final["transiciones"].items():
-        for simbolo, destino in transiciones.items():
-            print(f"  {origen} --{simbolo}--> {destino}")
-
     # Si tienes token_type_map asociado
     if "token_type_map" in afd_final:
-        print("\n🔹 Token type por estado de aceptación:")
+        print("\nToken type por estado de aceptación:")
         for estado, token in afd_final["token_type_map"].items():
             print(f"  {estado} => {token}")
 
     # Generar visualización del AFD final después de la recuperación de estados
     dibujar_AFD(afd_final, "output/afd/afd_final_subconjuntos",  token_type=estado_final_con_token_nuevo)
     print("\nSe generó la visualización del AFD final en output/afd/afd_final_subconjuntos")
-    simular_codigo_con_tokens(afd_final, estado_a_token, "code_example.txt", "tokens_output.txt")
-
+    simular_codigo_con_tokens(afd_final, estado_a_token, "output/tokens/random_data.txt", "output/tokens/tokens_output.txt")
+    print("\nSimulación de código con tokens completada. Tokens escritos en output/tokens/tokens_output.txt")
+    print("Fin del proceso.")

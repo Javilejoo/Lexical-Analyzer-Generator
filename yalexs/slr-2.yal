@@ -12,12 +12,12 @@ let number = digits(.digits)?('E'['+''-']?digits)?
 
 
 rule tokens = 
-    ws        { return ws }               (* Cambie por una acción válida, que devuelva el token *)
+    ws        { return WS }               (* Cambie por una acción válida, que devuelva el token *)
   | id        { return ID }
   | number    { return NUMBER }
-  | '+'       { return sumar }
+  | '+'       { return PLUS }
   | '-'       { return MINUS }
-  | '*'       { return multiplicar }
+  | '*'       { return TIMES }
   | '/'       { return DIV }
   | '('       { return LPAREN }
   | ')'       { return RPAREN }
