@@ -268,11 +268,11 @@ def extraer_literal_doble(cadena, indice):
 def expandir_guion_bajo_como_imprimibles():
     def escapar(c):
         if c == "'":
-            return r"\'"
+            return r"\\'"     # comilla simple
         elif c == '"':
-            return r'\"'
+            return r'\"'  # comilla doble
         elif c == '\\':
-            return r'\\\\'
+            return r"\\\\"  # doble backslash: se vuelve \\\\
         else:
             return c
 

@@ -122,8 +122,12 @@ literal_to_placeholder = {
     "/": "\ue003",
     "(": "\ue004",
     ")": "\ue005",
-    ".": "\ue006"    # Agrega otros si es necesario
+    ".": "\ue006",
+    "|": "\ue007",
+    "?": "\ue008"
 }
+    
+    
 placeholder_to_literal = {v: k for k, v in literal_to_placeholder.items()}
 
 def map_literal_tokens(expresion):
@@ -189,12 +193,12 @@ def convert_infix_to_postfix(expresion):
     return postfix
 
 if __name__ == '__main__':
-    expresion = "((((' '|'!'|'\"'|'#'|'$'|'%'|'&'|'\''|'('|')'|'*'|'+'|','|'-'|'.'|'/'|'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|':'|';'|'<'|'='|'>'|'?'|'@'|'A'|'B'|'C'|'D'|'E'|'F'|'G'|'H'|'I'|'J'|'K'|'L'|'M'|'N'|'O'|'P'|'Q'|'R'|'S'|'T'|'U'|'V'|'W'|'X'|'Y'|'Z'|'['|'\\\\'|']'|'^'|'_'|'`'|'a'|'b'|'c'|'d'|'e'|'f'|'g'|'h'|'i'|'j'|'k'|'l'|'m'|'n'|'o'|'p'|'q'|'r'|'s'|'t'|'u'|'v'|'w'|'x'|'y'|'z'|'{'|'|'|'}'|'~'))*))#"
+    expresion = "((((' '|'!'|'\"'|'#'|'$'|'%'|'&'|'\''|'('|')'|'*'|'+'|','|'-'|'.'|'/'))*))#"
     #shutting yard a expresion para convertila a postfix
     postfix = convert_infix_to_postfix(expresion)
     print("Infix:", expresion)
     print("Postfix:", postfix)
-    expresion = "a|b|'+'|2"
+    expresion = "a|b|'+'|2|'''|c|b|2|9|0|2|3|9|0"
     #shutting yard a expresion para convertila a postfix
     postfix = convert_infix_to_postfix(expresion)
     print("Infix:", expresion)

@@ -27,10 +27,8 @@ def generate_expression_tree_image(root, filename):
     add_nodes_edges(root)
     dot.render(filename, format='png', cleanup=True)
 
-with open("output/final_infix.txt", "r", encoding="utf-8") as f:
-    line = f.readline().strip()
-    infix = line.split("-->")[0].strip() # asegurarnos de incluir el '#' final
 
+infix = "((((' '|'!'|'\"'|'#'|'$'|'%'|'&'|'('|')'|'*'|'+'|','|'-'|''.''|'/'|'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|':'|';'|'<'|'='|'>'|'?'|'@'|'A'|'B'|'C'|'D'|'E'|'F'|'G'|'H'|'I'|'J'|'K'|'L'|'M'|'N'|'O'|'P'|'Q'|'R'|'S'|'T'|'U'|'V'|'W'|'X'|'Y'|'Z'|'[''|']'|'^'|'_'|'`'|'a'|'b'|'c'|'d'|'e'|'f'|'g'|'h'|'i'|'j'|'k'|'l'|'m'|'n'|'o'|'p'|'q'|'r'|'s'|'t'|'u'|'v'|'w'|'x'|'y'|'z'|'{'|'|'|'}'|'~'))*))#"
 print("📥 INFIX leído:")
 print(infix)
 
@@ -41,6 +39,6 @@ print(postfix)
 
     # Construir el árbol y graficarlo
 root = estructuras.build_expression_tree(postfix)
-#generate_expression_tree_image(root, "output/trees/str_token_tree")
+generate_expression_tree_image(root, "output/trees/str_token_tree")
 
-#print("🌳 Árbol de expresión generado y guardado como 'output/trees/str_token_tree.png'")
+print("🌳 Árbol de expresión generado y guardado como 'output/trees/str_token_tree.png'")
