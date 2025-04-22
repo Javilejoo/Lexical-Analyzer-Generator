@@ -1,6 +1,6 @@
 from graphviz import Digraph
 from shuntingyard import *
-from estructuras import *
+import estructuras
 def generate_expression_tree_image(root, filename):
     dot = Digraph(format='png')
 
@@ -26,3 +26,21 @@ def generate_expression_tree_image(root, filename):
 
     add_nodes_edges(root)
     dot.render(filename, format='png', cleanup=True)
+
+with open("output/final_infix.txt", "r", encoding="utf-8") as f:
+    line = f.readline().strip()
+    infix = line.split("-->")[0].strip() # asegurarnos de incluir el '#' final
+
+print("📥 INFIX leído:")
+print(infix)
+
+    # Convertir infix a postfix
+postfix = convert_infix_to_postfix(infix)
+print("📤 POSTFIX generado:")
+print(postfix)
+
+    # Construir el árbol y graficarlo
+root = estructuras.build_expression_tree(postfix)
+#generate_expression_tree_image(root, "output/trees/str_token_tree")
+
+#print("🌳 Árbol de expresión generado y guardado como 'output/trees/str_token_tree.png'")

@@ -138,7 +138,7 @@ def extraer_trailer(yalex_code):
 if len(sys.argv) > 1:
     yalex = sys.argv[1]
 else:
-    yalex = 'yalexs/slr-2.yal'
+    yalex = 'output/yalexs/slr-5.yal'
 yalex_parser(yalex)
 
 header, expresiones, reglas, trailer = yalex_parser(yalex)
@@ -199,7 +199,7 @@ def expand_definitions_recursivo(definiciones):
                 i = fin + 1
 
             elif expr[i] == '_':
-                resultado += expand_printable_chars()
+                resultado += expandir_guion_bajo_como_imprimibles()
                 i += 1
 
             else:
@@ -264,6 +264,22 @@ def extraer_literal_doble(cadena, indice):
             literal += cadena[i]
             i += 1
     raise ValueError("Literal entre comillas dobles no cerrado correctamente.")
+
+def expandir_guion_bajo_como_imprimibles():
+    def escapar(c):
+        if c == "'":
+            return r"\'"
+        elif c == '"':
+            return r'\"'
+        elif c == '\\':
+            return r'\\\\'
+        else:
+            return c
+
+    chars = [f"'{escapar(chr(i))}'" for i in range(32, 127)]
+    return '(' + '|'.join(chars) + ')'
+
+
 
 def expand_range(rango):
     # Procesa una cadena de rango, por ejemplo: ['+''-'] o ['0'-'2']
