@@ -124,7 +124,8 @@ literal_to_placeholder = {
     ")": "\ue005",
     ".": "\ue006",
     "|": "\ue007",
-    "?": "\ue008"
+    "?": "\ue008",
+    "\\'": "\ue00b", 
 }
     
     
@@ -139,6 +140,15 @@ def map_literal_tokens(expresion):
     i = 0
     while i < len(expresion):
         if expresion[i] == "'":
+            # Caso especial: literal escapado como '\\''
+            if i + 3 < len(expresion) and expresion[i+1] == '\\' and expresion[i+2] == "'" and expresion[i+3] == "'":
+                char = "\\'"
+                if char in literal_to_placeholder:
+                    new_expr += literal_to_placeholder[char]
+                else:
+                    new_expr += "'" + char + "'"
+                i += 4
+                continue
             # Comprobar que es un literal de un solo caracter: debe tener la forma 'X'
             if i + 2 < len(expresion) and expresion[i+2] == "'":
                 char = expresion[i+1]
@@ -198,7 +208,12 @@ if __name__ == '__main__':
     postfix = convert_infix_to_postfix(expresion)
     print("Infix:", expresion)
     print("Postfix:", postfix)
-    expresion = "a|b|'+'|2|'''|c|b|2|9|0|2|3|9|0"
+    expresion = "a|b|'+'"
+    #shutting yard a expresion para convertila a postfix
+    postfix = convert_infix_to_postfix(expresion)
+    print("Infix:", expresion)
+    print("Postfix:", postfix)
+    expresion = "a|'\\''"
     #shutting yard a expresion para convertila a postfix
     postfix = convert_infix_to_postfix(expresion)
     print("Infix:", expresion)
