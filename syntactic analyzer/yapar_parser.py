@@ -106,6 +106,13 @@ class YaparLexer:
                 self.advance()
                 continue
             
+            # Separador %% (debe ir antes que el % individual)
+            if self.current_char() == '%' and self.peek_char() == '%':
+                tokens.append(('SEPARATOR', '%%', self.line, self.column))
+                self.advance()
+                self.advance()
+                continue
+            
             # Porcentaje (para %token)
             if self.current_char() == '%':
                 tokens.append(('PERCENT', '%', self.line, self.column))
@@ -127,13 +134,6 @@ class YaparLexer:
             # Pipe (|)
             if self.current_char() == '|':
                 tokens.append(('PIPE', '|', self.line, self.column))
-                self.advance()
-                continue
-            
-            # Separador %%
-            if self.current_char() == '%' and self.peek_char() == '%':
-                tokens.append(('SEPARATOR', '%%', self.line, self.column))
-                self.advance()
                 self.advance()
                 continue
             
