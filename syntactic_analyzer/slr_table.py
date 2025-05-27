@@ -1,0 +1,370 @@
+"""
+Implementación de la tabla SLR(1) y el parser sintáctico.
+Core de la solución sin funcionalidades extra.
+"""
+
+from enum import Enum
+from collections import defaultdict
+
+class ActionType(Enum):
+    """Tipos de acciones en la tabla SLR"""
+    SHIFT = "shift"
+    REDUCE = "reduce"
+    ACCEPT = "accept"
+    ERROR = "error"
+
+class Action:
+    """Representa una acción en la tabla SLR"""
+    def __init__(self, action_type, value=None):
+        self.type = action_type
+        self.value = value  # Estado para shift, número de producción para reduce
+    
+    def __repr__(self):
+        if self.type == ActionType.SHIFT:
+            return f"s{self.value}"
+        elif self.type == ActionType.REDUCE:
+            return f"r{self.value}"
+        elif self.type == ActionType.ACCEPT:
+            return "acc"
+        else:
+            return "err"
+    
+    def __str__(self):
+        return self.__repr__()
+
+class SLRTable:
+    """
+    Tabla SLR(1) que contiene las tablas ACTION y GOTO.
+    """
+    def __init__(self, automaton, grammar):
+        self.automaton = automaton
+        self.grammar = grammar
+        self.action_table = {}  # {(state_id, terminal): Action}
+        self.goto_table = {}    # {(state_id, non_terminal): state_id}
+        self.conflicts = []     # Lista de conflictos detectados
+        
+    def set_action(self, state_id, terminal, action):
+        """Establece una acción en la tabla ACTION"""
+        key = (state_id, terminal)
+        
+        # Verificar conflictos
+        if key in self.action_table:
+            existing = self.action_table[key]
+            if existing.type != action.type or existing.value != action.value:
+                conflict = {
+                    'state': state_id,
+                    'terminal': terminal,
+                    'existing': existing,
+                    'new': action,
+                    'type': self._classify_conflict(existing, action)
+                }
+                self.conflicts.append(conflict)
+                return False
+        
+        self.action_table[key] = action
+        return True
+    
+    def set_goto(self, state_id, non_terminal, target_state):
+        """Establece una transición en la tabla GOTO"""
+        self.goto_table[(state_id, non_terminal)] = target_state
+    
+    def get_action(self, state_id, terminal):
+        """Obtiene la acción para un estado y terminal"""
+        return self.action_table.get((state_id, terminal), Action(ActionType.ERROR))
+    
+    def get_goto(self, state_id, non_terminal):
+        """Obtiene el estado destino para un estado y no-terminal"""
+        return self.goto_table.get((state_id, non_terminal), None)
+    
+    def _classify_conflict(self, existing, new):
+        """Clasifica el tipo de conflicto"""
+        if existing.type == ActionType.SHIFT and new.type == ActionType.REDUCE:
+            return "shift/reduce"
+        elif existing.type == ActionType.REDUCE and new.type == ActionType.SHIFT:
+            return "shift/reduce"
+        elif existing.type == ActionType.REDUCE and new.type == ActionType.REDUCE:
+            return "reduce/reduce"
+        else:
+            return "unknown"
+    
+    def has_conflicts(self):
+        """Retorna True si hay conflictos en la tabla"""
+        return len(self.conflicts) > 0
+    
+    def print_conflicts(self):
+        """Imprime los conflictos encontrados"""
+        if not self.conflicts:
+            print("No hay conflictos en la tabla SLR(1)")
+            return
+        
+        print(f"\n⚠️  CONFLICTOS ENCONTRADOS: {len(self.conflicts)}")
+        for i, conflict in enumerate(self.conflicts, 1):
+            print(f"\n{i}. Conflicto {conflict['type']} en Estado {conflict['state']}")
+            print(f"   Terminal: {conflict['terminal']}")
+            print(f"   Acción existente: {conflict['existing']}")
+            print(f"   Nueva acción: {conflict['new']}")
+    
+    def print_table(self):
+        """Imprime la tabla SLR de forma legible"""
+        print("\n=== TABLA SLR(1) ===")
+        
+        # Obtener todos los terminales y no-terminales
+        terminals = sorted(self.grammar.tokens) + ['$']
+        non_terminals = sorted(self.grammar.non_terminals)
+        
+        # Encabezado
+        print(f"{'Estado':<8}", end="")
+        for terminal in terminals:
+            print(f"{terminal:<8}", end="")
+        print("│", end="")
+        for nt in non_terminals:
+            print(f"{nt:<12}", end="")
+        print()
+        
+        # Separador
+        print("─" * (8 + len(terminals) * 8 + 1 + len(non_terminals) * 12))
+        
+        # Filas de la tabla
+        for state_id in range(len(self.automaton.states)):
+            print(f"{state_id:<8}", end="")
+            
+            # Tabla ACTION
+            for terminal in terminals:
+                action = self.get_action(state_id, terminal)
+                if action.type != ActionType.ERROR:
+                    print(f"{str(action):<8}", end="")
+                else:
+                    print(f"{'·':<8}", end="")
+            
+            print("│", end="")
+            
+            # Tabla GOTO
+            for nt in non_terminals:
+                goto_state = self.get_goto(state_id, nt)
+                if goto_state is not None:
+                    print(f"{goto_state:<12}", end="")
+                else:
+                    print(f"{'·':<12}", end="")
+            print()
+
+def build_slr_table(automaton, follow_sets):
+    """
+    Construye la tabla SLR(1) a partir del autómata LR(0) y los conjuntos FOLLOW.
+    
+    Args:
+        automaton: LR0Automaton construido
+        follow_sets: Diccionario con conjuntos FOLLOW
+        
+    Returns:
+        SLRTable: Tabla SLR(1) construida
+    """
+    table = SLRTable(automaton, automaton.grammar)
+    
+    print(f"\nConstruyendo tabla SLR(1) para {len(automaton.states)} estados...")
+    
+    # Para cada estado en el autómata
+    for state in automaton.states:
+        state_id = state.id
+        
+        # 1. Procesar ítems para acciones SHIFT
+        for item in state.items:
+            if not item.is_complete and item.next_symbol in automaton.grammar.tokens:
+                # Ítem A → α•aβ donde a es terminal
+                terminal = item.next_symbol
+                target_state = state.transitions.get(terminal)
+                
+                if target_state is not None:
+                    action = Action(ActionType.SHIFT, target_state)
+                    table.set_action(state_id, terminal, action)
+        
+        # 2. Procesar ítems completos para acciones REDUCE
+        for item in state.items:
+            if item.is_complete:
+                # Ítem A → α•
+                if item.production.number == 0:
+                    # S' → S• - acción ACCEPT
+                    action = Action(ActionType.ACCEPT)
+                    table.set_action(state_id, '$', action)
+                else:
+                    # A → α• - acción REDUCE
+                    left_symbol = item.left
+                    if left_symbol in follow_sets:
+                        for terminal in follow_sets[left_symbol]:
+                            action = Action(ActionType.REDUCE, item.production.number)
+                            table.set_action(state_id, terminal, action)
+        
+        # 3. Procesar transiciones para tabla GOTO
+        for symbol, target_state in state.transitions.items():
+            if symbol in automaton.grammar.non_terminals:
+                table.set_goto(state_id, symbol, target_state)
+    
+    print(f"Tabla construida con {len(table.action_table)} entradas ACTION y {len(table.goto_table)} entradas GOTO")
+    
+    # Reportar conflictos
+    if table.has_conflicts():
+        table.print_conflicts()
+    else:
+        print("✓ No se encontraron conflictos")
+    
+    return table
+
+class SLRParser:
+    """
+    Parser SLR(1) que utiliza la tabla para analizar cadenas.
+    """
+    def __init__(self, table):
+        self.table = table
+        self.grammar = table.grammar
+    
+    def parse(self, tokens):
+        """
+        Analiza una cadena de tokens usando el algoritmo SLR(1).
+        
+        Args:
+            tokens: Lista de tokens (strings)
+            
+        Returns:
+            tuple: (success: bool, steps: list, error_msg: str)
+        """
+        # Agregar $ al final si no está
+        if not tokens or tokens[-1] != '$':
+            tokens = tokens + ['$']
+        
+        # Inicializar pila y buffer
+        stack = [0]  # Pila de estados (comienza con estado 0)
+        buffer = tokens[:]  # Buffer de entrada
+        steps = []  # Pasos del análisis
+        step_num = 0
+        
+        print(f"\nIniciando análisis SLR(1) de: {' '.join(tokens[:-1])}")
+        print(f"{'Paso':<5} {'Pila':<15} {'Entrada':<15} {'Acción'}")
+        print("─" * 50)
+        
+        while True:
+            step_num += 1
+            current_state = stack[-1]
+            current_token = buffer[0] if buffer else '$'
+            
+            # Obtener acción de la tabla
+            action = self.table.get_action(current_state, current_token)
+            
+            # Formatear estado actual para mostrar
+            # Mostrar solo los estados para simplicidad en la visualización
+            states_only = [str(stack[i]) for i in range(0, len(stack), 2) if i < len(stack)]
+            stack_str = ' '.join(states_only)
+            buffer_str = ' '.join(buffer)
+            
+            print(f"{step_num:<5} {stack_str:<15} {buffer_str:<15} {action}")
+            
+            step_info = {
+                'step': step_num,
+                'stack': stack[:],
+                'buffer': buffer[:],
+                'action': str(action)
+            }
+            steps.append(step_info)
+            
+            if action.type == ActionType.SHIFT:
+                # Shift: mover token a la pila y cambiar de estado
+                # En SLR, la pila alterna: estado, símbolo, estado, símbolo...
+                stack.append(current_token)  # Agregar símbolo
+                stack.append(action.value)   # Agregar nuevo estado
+                buffer.pop(0)
+                
+            elif action.type == ActionType.REDUCE:
+                # Reduce: aplicar producción
+                production = self.grammar.production_list[action.value]
+                
+                # Quitar 2 * len(right) elementos de la pila (símbolo + estado por cada símbolo)
+                symbols_to_remove = len(production.right)
+                if symbols_to_remove > 0:
+                    for _ in range(symbols_to_remove * 2):  # 2 elementos por símbolo
+                        if len(stack) > 1:  # Mantener al menos el estado inicial
+                            stack.pop()
+                
+                # Estado actual después de la reducción
+                current_state = stack[-1]
+                
+                # Buscar transición GOTO
+                goto_state = self.table.get_goto(current_state, production.left)
+                if goto_state is None:
+                    error_msg = f"Error: No hay transición GOTO desde estado {current_state} con {production.left}"
+                    print(f"\n✗ {error_msg}")
+                    return False, steps, error_msg
+                
+                # Agregar el no-terminal y el nuevo estado
+                stack.append(production.left)  # Agregar no-terminal
+                stack.append(goto_state)       # Agregar nuevo estado
+                print(f"      Reducir por: {production}")
+                
+            elif action.type == ActionType.ACCEPT:
+                # Accept: análisis exitoso
+                print(f"\n✓ Cadena aceptada en {step_num} pasos")
+                return True, steps, "Análisis exitoso"
+                
+            elif action.type == ActionType.ERROR:
+                # Error: análisis fallido
+                error_msg = f"Error de sintaxis en estado {current_state} con token '{current_token}'"
+                print(f"\n✗ {error_msg}")
+                return False, steps, error_msg
+            
+            # Prevenir bucles infinitos
+            if step_num > 1000:
+                error_msg = "Error: Demasiados pasos, posible bucle infinito"
+                print(f"\n✗ {error_msg}")
+                return False, steps, error_msg
+        
+        return False, steps, "Error desconocido"
+
+def analyze_slr_grammar(grammar_file, test_strings=None):
+    """
+    Función principal para analizar una gramática y probar cadenas.
+    
+    Args:
+        grammar_file: Ruta al archivo .yalp
+        test_strings: Lista de cadenas a probar (opcional)
+        
+    Returns:
+        tuple: (table, parser, results)
+    """
+    from yapar_parser import parse_yapar_file, augment_grammar
+    from first_follow import analyze_grammar_first_follow
+    from lr0_automaton import build_lr0_automaton
+    
+    # 1. Parsear y aumentar gramática
+    print(f"Analizando gramática: {grammar_file}")
+    grammar = parse_yapar_file(grammar_file)
+    if not grammar:
+        print("Error: No se pudo parsear la gramática")
+        return None, None, None
+    
+    augment_grammar(grammar)
+    
+    # 2. Calcular FIRST y FOLLOW
+    first_sets, follow_sets = analyze_grammar_first_follow(grammar)
+    
+    # 3. Construir autómata LR(0)
+    automaton = build_lr0_automaton(grammar)
+    
+    # 4. Construir tabla SLR(1)
+    table = build_slr_table(automaton, follow_sets)
+    
+    # 5. Crear parser
+    parser = SLRParser(table)
+    
+    # 6. Probar cadenas si se proporcionan
+    results = []
+    if test_strings:
+        print(f"\nProbando {len(test_strings)} cadenas:")
+        for i, test_string in enumerate(test_strings, 1):
+            print(f"\n--- Prueba {i}: {test_string} ---")
+            tokens = test_string.split() if isinstance(test_string, str) else test_string
+            success, steps, message = parser.parse(tokens)
+            results.append({
+                'input': test_string,
+                'success': success,
+                'steps': len(steps),
+                'message': message
+            })
+    
+    return table, parser, results

@@ -299,8 +299,8 @@ def closure(items, grammar):
         changed = False
         items_to_add = set()
         
-        # Para cada ítem en el conjunto actual
-        for item in closure_set:
+        # Para cada ítem en el conjunto actual (ordenado para determinismo)
+        for item in sorted(closure_set, key=lambda x: (x.production.number, x.dot_position)):
             # Si el ítem no está completo y el siguiente símbolo es un no-terminal
             if not item.is_complete and item.next_symbol in grammar.non_terminals:
                 non_terminal = item.next_symbol
@@ -341,8 +341,8 @@ def goto(items, symbol, grammar):
     """
     goto_set = set()
     
-    # Para cada ítem en el conjunto
-    for item in items:
+    # Para cada ítem en el conjunto (ordenado para determinismo)
+    for item in sorted(items, key=lambda x: (x.production.number, x.dot_position)):
         # Si el símbolo después del punto es el símbolo buscado
         if not item.is_complete and item.next_symbol == symbol:
             # Avanzar el punto
@@ -409,8 +409,8 @@ def build_lr0_automaton(grammar):
         
         print(f"\nProcesando Estado {current_state_id}...")
         
-        # Obtener todos los símbolos después del punto
-        symbols = current_state.get_symbols_after_dot()
+        # Obtener todos los símbolos después del punto (ordenados para determinismo)
+        symbols = sorted(current_state.get_symbols_after_dot())
         
         # Para cada símbolo, calcular GOTO
         for symbol in symbols:
