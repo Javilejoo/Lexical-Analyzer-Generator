@@ -408,6 +408,6 @@ if __name__ == "__main__":
     # Generar visualización del AFD final después de la recuperación de estados
     dibujar_AFD(afd_final, "output/afd/afd_final_subconjuntos",  token_type=estado_final_con_token_nuevo)
     print("\nSe generó la visualización del AFD final en output/afd/afd_final_subconjuntos")
-    simular_codigo_con_tokens(afd_final, estado_a_token, "output/tokens/data.txt", "output/tokens/tokens_output.txt")
+    simular_codigo_con_tokens(afd_final, estado_a_token, "output/tokens/random_data.txt", "output/tokens/tokens_output.txt")
     print("\nSimulación de código con tokens completada. Tokens escritos en output/tokens/tokens_output.txt")
     print("Fin del proceso.")

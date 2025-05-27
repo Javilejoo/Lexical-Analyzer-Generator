@@ -341,19 +341,32 @@ def extraer_literal_doble(cadena, indice):
 
 def expandir_guion_bajo_como_imprimibles():
     def escapar(c):
+        # Para Graphviz, necesitamos un enfoque diferente para caracteres problemáticos
         if c == "'":
-            return r"\\'"     # comilla simple
+            return "COMILLASIMPLE"  # Usamos un marcador temporal
         elif c == '"':
-            return r'\"'  # comilla doble
+            return "COMILLADOBLE"  # Usamos un marcador temporal
         elif c == '\\':
-            return r"\\\\"  # doble backslash: se vuelve \\\\
+            return "BACKSLASH"  # Usamos un marcador temporal
+        elif c == '|':
+            return "PIPE"  # Usamos un marcador temporal
         else:
             return c
 
-    chars = [f"'{escapar(chr(i))}'" for i in range(32, 127)]
+    # Generamos la unión de caracteres sin los problemáticos
+    chars = []
+    for i in range(32, 127):
+        char = chr(i)
+        if char not in "'\\|":
+            chars.append(f"'{char}'")
+        elif char == "'":
+            chars.append("'Q'")
+        elif char == '\\':
+            chars.append("'B'")
+        elif char == '|':
+            chars.append("'P'")
+    
     return '(' + '|'.join(chars) + ')'
-
-
 
 def expand_range(rango):
     # Procesa una cadena de rango, por ejemplo: ['+''-'] o ['0'-'2']
