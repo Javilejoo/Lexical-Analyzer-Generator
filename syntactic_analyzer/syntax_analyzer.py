@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Analizador sintáctico integrado que conecta el analizador léxico con el sintáctico.
 Este es el punto de integración entre ambas partes del proyecto.

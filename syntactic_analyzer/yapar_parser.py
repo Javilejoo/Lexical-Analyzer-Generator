@@ -1,3 +1,7 @@
+"""
+Parser para archivos YAPar que procesa carácter por carácter
+"""
+
 from lr0_automaton import Grammar, Production
 
 class YaparLexer:
