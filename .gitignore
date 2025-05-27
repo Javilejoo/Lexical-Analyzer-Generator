@@ -1,4 +1,5 @@
 # carpeta output y yalexs
 output/
+yalexs/
 __pycache__/
 .DS_Store

@@ -1,34 +1,64 @@
 import sys
 import os
 os.makedirs("output", exist_ok=True)
-def yalex_parser(yalex):
-    #Read the .yal file
-    with open(yalex, 'r') as file:
-        yalex_code = file.read()
-    #Delete comments
-    yalex_code = delete_comments(yalex_code)
-    #header
-    header, yalex_code = extraer_header(yalex_code)
-    #Expressions
-    expresiones = extraer_expresiones(yalex_code)
-    #Rules
-    reglas = extraer_reglas(yalex_code)
-    #Trailer
-    trailer, yalex_code = extraer_trailer(yalex_code)
 
+def leer_archivo_char_por_char(ruta_archivo):
+    """Lee un archivo carácter por carácter y devuelve su contenido como string."""
+    contenido = ""
+    with open(ruta_archivo, 'r') as file:
+        char = file.read(1)  # Lee un carácter a la vez
+        while char:
+            contenido += char
+            char = file.read(1)
+    return contenido
+
+def yalex_parser(yalex):
+    # Leer el archivo .yal carácter por carácter
+    yalex_code = leer_archivo_char_por_char(yalex)
+    
+    # Eliminar comentarios
+    yalex_code = delete_comments(yalex_code)
+    
+    # Extraer header
+    header, yalex_code = extraer_header(yalex_code)
+    
+    # Extraer expresiones
+    expresiones = extraer_expresiones_char_por_char(yalex_code)
+    
+    # Extraer reglas
+    reglas = extraer_reglas_char_por_char(yalex_code)
+    
+    # Extraer trailer
+    trailer, yalex_code = extraer_trailer_char_por_char(yalex_code)
+    
     return header, expresiones, reglas, trailer
 
-
-
-
 def delete_comments(yalex_code):
-    """Delete comments from the yalex code. comments begins with (* and ends with *)"""
-    #Delete comments
-    while '(*' in yalex_code:
-        start = yalex_code.index('(*')
-        end = yalex_code.index('*)') + 2
-        yalex_code = yalex_code[:start] + yalex_code[end:]
-    return yalex_code
+    """Elimina comentarios del código yalex. Los comentarios comienzan con (* y terminan con *)"""
+    resultado = ""
+    i = 0
+    en_comentario = False
+    
+    while i < len(yalex_code):
+        # Verifica si comienza un comentario
+        if i < len(yalex_code) - 1 and yalex_code[i:i+2] == "(*":
+            en_comentario = True
+            i += 2
+            continue
+        
+        # Verifica si termina un comentario
+        if en_comentario and i < len(yalex_code) - 1 and yalex_code[i:i+2] == "*)":
+            en_comentario = False
+            i += 2
+            continue
+        
+        # Si no estamos en un comentario, añade el carácter al resultado
+        if not en_comentario:
+            resultado += yalex_code[i]
+        
+        i += 1
+    
+    return resultado
 
 def extraer_header(yalex_code):
     """Extrae el header solo si aparece antes de la primera 'let'."""
@@ -48,99 +78,143 @@ def extraer_header(yalex_code):
             print("No hay header")
     return header, yalex_code
 
-def extraer_expresiones(yalex_code):
-    """Extrae todas las definiciones 'let' antes de 'rule tokens ='."""
+def extraer_expresiones_char_por_char(yalex_code):
+    """Extrae todas las definiciones 'let' antes de 'rule tokens =' procesando carácter por carácter."""
     expresiones = []
     pos_rule = yalex_code.find('rule tokens =')
     bloque_definiciones = yalex_code[:pos_rule] if pos_rule != -1 else yalex_code
-
-    # Recorre cada línea
-    for linea in bloque_definiciones.split('\n'):
-        linea = linea.strip()
-        if linea.startswith('let'):
-            expresiones.append(linea)
-
+    
+    # Procesar carácter por carácter
+    i = 0
+    linea_actual = ""
+    
+    while i < len(bloque_definiciones):
+        # Si encontramos un salto de línea, procesamos la línea actual
+        if bloque_definiciones[i] == '\n':
+            linea_actual = linea_actual.strip()
+            if linea_actual.startswith('let'):
+                expresiones.append(linea_actual)
+            linea_actual = ""
+        else:
+            linea_actual += bloque_definiciones[i]
+        
+        i += 1
+    
+    # Procesar la última línea si queda alguna
+    linea_actual = linea_actual.strip()
+    if linea_actual.startswith('let'):
+        expresiones.append(linea_actual)
+    
     print("\nEXPRESIONES ENCONTRADAS:")
     for exp in expresiones:
         print(exp)
-
+    
     return expresiones
 
-def extraer_reglas(yalex_code):
-    """Extrae las reglas completas después de 'rule tokens =' hasta que termina la sección."""
+def extraer_reglas_char_por_char(yalex_code):
+    """Extrae las reglas completas después de 'rule tokens =' procesando carácter por carácter."""
     reglas = []
     pos_rule = yalex_code.find('rule tokens =')
     if pos_rule == -1:
         return []
-
+    
     # Sacar la parte desde rule tokens
     bloque_reglas = yalex_code[pos_rule:]
-    lineas = bloque_reglas.split('\n')
-
+    
+    # Procesar carácter por carácter
+    i = 0
+    linea_actual = ""
     capturando = False
-    for linea in lineas:
-        if 'rule tokens =' in linea:
-            capturando = True
-            continue
-        # Si encontramos un { solito o la siguiente sección, paramos
-        if capturando and (linea.strip() == '' or linea.strip().startswith('{')):
-            break
-        if capturando:
-            reglas.append(linea.strip())
-
+    
+    while i < len(bloque_reglas):
+        # Si encontramos un salto de línea, procesamos la línea actual
+        if bloque_reglas[i] == '\n':
+            linea_actual = linea_actual.strip()
+            
+            if 'rule tokens =' in linea_actual:
+                capturando = True
+            elif capturando and (linea_actual == '' or linea_actual.startswith('{')):
+                capturando = False  # Terminar captura si encontramos línea vacía o inicio de trailer
+            elif capturando:
+                reglas.append(linea_actual)
+                
+            linea_actual = ""
+        else:
+            linea_actual += bloque_reglas[i]
+        
+        i += 1
+    
+    # Procesar la última línea si queda alguna
+    linea_actual = linea_actual.strip()
+    if capturando and linea_actual and not linea_actual.startswith('{'):
+        reglas.append(linea_actual)
+    
     print("\nREGLAS ENCONTRADAS:")
     for reg in reglas:
         print(reg)
-
+    
     return reglas
 
-def extraer_trailer(yalex_code):
-    """Busca la última regla y extrae el trailer si existe después."""
+def extraer_trailer_char_por_char(yalex_code):
+    """Busca la última regla y extrae el trailer si existe después, procesando carácter por carácter."""
     trailer = ''
-
-    #  Buscar la sección de reglas
+    
+    # Buscar la sección de reglas
     pos_rule = yalex_code.find('rule tokens =')
     if pos_rule == -1:
         return '', yalex_code  # No hay reglas
-
-    #  Obtener todo el bloque de reglas
+    
+    # Obtener todo el bloque de reglas
     reglas_bloque = yalex_code[pos_rule:]
-    lineas = reglas_bloque.split('\n')
-
-    # Identificar la ultima regla que contiene { return ... }
-    ultima_regla = ''
-    for linea in lineas:
-        if '{' in linea and 'return' in linea:
-            ultima_regla = linea.strip()
-
+    
+    # Identificar la última regla que contiene { return ... }
+    i = 0
+    linea_actual = ""
+    ultima_regla = ""
+    
+    while i < len(reglas_bloque):
+        if reglas_bloque[i] == '\n':
+            linea_actual = linea_actual.strip()
+            if '{' in linea_actual and 'return' in linea_actual:
+                ultima_regla = linea_actual
+            linea_actual = ""
+        else:
+            linea_actual += reglas_bloque[i]
+        
+        i += 1
+    
+    # Procesar la última línea
+    linea_actual = linea_actual.strip()
+    if '{' in linea_actual and 'return' in linea_actual:
+        ultima_regla = linea_actual
+    
     if not ultima_regla:
-        return '', yalex_code  # No encontro ninguna regla con acción
-
-    #  Buscar esa última regla en todo el yalex_code
+        return '', yalex_code  # No encontró ninguna regla con acción
+    
+    # Buscar esa última regla en todo el yalex_code
     pos_ultima_regla = yalex_code.find(ultima_regla)
     if pos_ultima_regla == -1:
-        return '', yalex_code 
-
+        return '', yalex_code
+    
     posible_trailer = yalex_code[pos_ultima_regla + len(ultima_regla):].strip()
     start = posible_trailer.find('{')
     end = posible_trailer.find('}', start)
-
+    
     if start != -1 and end != -1:
         trailer = posible_trailer[start + 1:end].strip()
-        print("trailer:\n",trailer)
+        print("trailer:\n", trailer)
     else:
         print("No hay trailer")
-
+    
     return trailer, yalex_code
-
 
 #NOMBRE YALEX
 if len(sys.argv) > 1:
     yalex = sys.argv[1]
 else:
     yalex = 'output/yalexs/slr-5.yal'
-yalex_parser(yalex)
 
+# Llamamos a yalex_parser una sola vez y guardamos los resultados
 header, expresiones, reglas, trailer = yalex_parser(yalex)
 
 with open("output/info_current_yal.txt", "w", encoding="utf-8") as f:
