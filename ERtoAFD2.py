@@ -44,10 +44,12 @@ def ERtoAFD_por_regla(lista_expresiones, pos_counter_inicial=1):
     pos_counter = pos_counter_inicial
     for expr in lista_expresiones:
         # Asegurarse de que la expresión tenga el símbolo final "#"
-        corte = expr.find("#") + 1
+        corte = expr.rfind("#") + 1
         if corte == 0:
             continue
-        expr_solo = expr[:corte]
+        core = expr[:corte - 1]
+        expr_solo = f"({core})#"
+       
         nombre_token = expr[corte:].replace("-->", "").strip()
         print("Procesando regla:", expr_solo.encode('utf-8').decode('utf-8'))
         # Convertir a postfix
@@ -300,7 +302,11 @@ def simular_codigo_con_tokens(afd, estado_a_token, archivo_entrada, archivo_sali
 
 # Bloque principal
 if __name__ == "__main__":
-    # Se asume que "output/final_infix.txt" contiene las reglas en el formato (regla)# (una regla por línea).
+    # Limpiar todos los folders output/afd, output/afn y output/trees
+    import shutil
+    shutil.rmtree("output/afd", ignore_errors=True)
+    shutil.rmtree("output/afn", ignore_errors=True)
+    shutil.rmtree("output/trees", ignore_errors=True)
     reglas_file = "output/final_infix.txt"
     afd_list, ultimo_estado = procesar_reglas_y_generar_afd(reglas_file)
     print("Se generaron", len(afd_list), "AFDs individuales.")
@@ -402,6 +408,6 @@ if __name__ == "__main__":
     # Generar visualización del AFD final después de la recuperación de estados
     dibujar_AFD(afd_final, "output/afd/afd_final_subconjuntos",  token_type=estado_final_con_token_nuevo)
     print("\nSe generó la visualización del AFD final en output/afd/afd_final_subconjuntos")
-    simular_codigo_con_tokens(afd_final, estado_a_token, "output/tokens/random_data.txt", "output/tokens/tokens_output.txt")
+    simular_codigo_con_tokens(afd_final, estado_a_token, "output/tokens/data.txt", "output/tokens/tokens_output.txt")
     print("\nSimulación de código con tokens completada. Tokens escritos en output/tokens/tokens_output.txt")
     print("Fin del proceso.")

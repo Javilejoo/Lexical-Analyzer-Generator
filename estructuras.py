@@ -32,38 +32,43 @@ class Stack:
 
 def tokenize_postfix(postfix_expr):
     """
-    Tokeniza la expresión postfix de modo que:
-      - Los literales entre comillas (ej: "'+'", "'*'", "'('", "')'") se agrupan como un único token.
-      - Se agrupan secuencias de escape (por ejemplo, "\n", "\t").
-      - El resto se tokeniza carácter a carácter, sin ignorar espacios, tabulaciones ni saltos de línea.
+    Tokeniza la expresión postfix. Agrupa correctamente los literales con escapes como '\'' y '\\'.
     """
     tokens = []
     i = 0
     while i < len(postfix_expr):
         if postfix_expr[i] == "'":
-            # Se encontró el inicio de un literal
             j = i + 1
             literal = ""
-            while j < len(postfix_expr) and postfix_expr[j] != "'":
-                literal += postfix_expr[j]
-                j += 1
+            while j < len(postfix_expr):
+                if postfix_expr[j] == "\\" and j + 1 < len(postfix_expr):
+                    literal += "\\" + postfix_expr[j + 1]
+                    j += 2
+                elif postfix_expr[j] == "'":
+                    break
+                else:
+                    literal += postfix_expr[j]
+                    j += 1
             if j < len(postfix_expr):
-                # Agregar el token literal completo (con comillas)
                 tokens.append("'" + literal + "'")
                 i = j + 1
             else:
-                # En caso de comilla sin cerrar, se agrega tal cual
                 tokens.append("'" + literal)
                 i = j
-        elif postfix_expr[i] == '\\' and (i + 1) < len(postfix_expr):
-            # Agrupar secuencia de escape (por ejemplo, "\n" o "\t")
+        #elif postfix_expr[i] == '\\' and i + 1 < len(postfix_expr):
+         #   tokens.append(postfix_expr[i] + postfix_expr[i + 1])
+          #  i += 2
+        elif postfix_expr[i] == '\\' \
+             and i + 1 < len(postfix_expr) \
+             and postfix_expr[i+1] in {'n','t'}:
             tokens.append(postfix_expr[i] + postfix_expr[i+1])
             i += 2
         else:
-            # Agregar cualquier carácter, incluidos espacios, tabulaciones y saltos
             tokens.append(postfix_expr[i])
             i += 1
     return tokens
+
+
 
 def build_expression_tree(postfix_expr):
     """
@@ -101,8 +106,14 @@ def build_expression_tree(postfix_expr):
                 node = Node(token, operand, None)
             stack.push(node)
         else:
+            if token == "'\\''":
+                # Manejo de la secuencia de escape para comillas simples
+                node = Node("'")
+            elif token == "\\":
+                node = Node("\\")
+
             # Si el token está entre comillas, se trata como literal
-            if token.startswith("'") and token.endswith("'"):
+            elif token.startswith("'") and token.endswith("'"):
                 literal = token[1:-1]
                 node = Node(literal)
             elif len(token) == 2 and token[0] == '\\':

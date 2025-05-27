@@ -44,11 +44,11 @@ def expand_operators(expression):
                 expanded_expression.append(')')
             else:
                 raise ValueError("Error: '?' debe estar precedido por un operando.")
-        elif char == '\\':
-            if i + 1 < len(expression):
-                expanded_expression.append(f'\\{expression[i+1]}')
-                i += 2
-                continue
+        #elif char == '\\':
+         #   if i + 1 < len(expression):
+          #      expanded_expression.append(f'\\{expression[i+1]}')
+           #     i += 2
+            #    continue
         elif char == "'":
             j = i + 1
             while j < len(expression) and expression[j] != "'":
@@ -122,8 +122,14 @@ literal_to_placeholder = {
     "/": "\ue003",
     "(": "\ue004",
     ")": "\ue005",
-    ".": "\ue006"    # Agrega otros si es necesario
+    ".": "\ue006",
+    "|": "\ue007",
+    "?": "\ue008",
+    "\\'": "\ue00b",
+    "\\": "\ue00c",
 }
+    
+    
 placeholder_to_literal = {v: k for k, v in literal_to_placeholder.items()}
 
 def map_literal_tokens(expresion):
@@ -135,6 +141,15 @@ def map_literal_tokens(expresion):
     i = 0
     while i < len(expresion):
         if expresion[i] == "'":
+            # Caso especial: literal escapado como '\\''
+            if i + 3 < len(expresion) and expresion[i+1] == '\\' and expresion[i+2] == "'" and expresion[i+3] == "'":
+                char = "\\'"
+                if char in literal_to_placeholder:
+                    new_expr += literal_to_placeholder[char]
+                else:
+                    new_expr += "'" + char + "'"
+                i += 4
+                continue
             # Comprobar que es un literal de un solo caracter: debe tener la forma 'X'
             if i + 2 < len(expresion) and expresion[i+2] == "'":
                 char = expresion[i+1]
@@ -187,25 +202,3 @@ def convert_infix_to_postfix(expresion):
     # Restaurar los literales a su forma original (con comillas)
     postfix = restore_literal_tokens(postfix)
     return postfix
-
-if __name__ == '__main__':
-    with open('output/final_infix.txt', 'r') as file:
-        expresiones = file.readlines()
-        print("Expresiones infix leídas del archivo:")
-        for exp in expresiones:
-            exp = exp.strip()
-            if not exp:
-                continue
-            try:
-                # Recortar solo la parte de la expresión infix (hasta el primer '#')
-                corte = exp.find('#') + 1
-                if corte == 0:
-                    continue  # si no hay '#', saltamos
-                solo_infix = exp[:corte]
-
-                postfix = convert_infix_to_postfix(solo_infix)
-                print(f"{exp} -> {postfix}")
-            except Exception as e:
-                print(f"Error procesando la expresión '{exp}': {e}")
-
-    print("\nFin del procesamiento.")
