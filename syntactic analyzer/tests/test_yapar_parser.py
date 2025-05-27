@@ -4,7 +4,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yapar_parser import YaparLexer, YaparParser, Grammar, parse_yapar_file, augment_grammar
+from yapar_parser import YaparLexer, YaparParser, parse_yapar_file, augment_grammar
 
 class TestYaparLexer(unittest.TestCase):
     """Pruebas unitarias para el lexer de YAPar"""
