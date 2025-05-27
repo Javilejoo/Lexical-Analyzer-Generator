@@ -1,25 +1,4 @@
-import sys
-from collections import OrderedDict
-
-class Grammar:
-    """Clase para representar una gramática libre de contexto"""
-    def __init__(self):
-        self.tokens = []           # Lista de terminales
-        self.non_terminals = []    # Lista de no-terminales
-        self.productions = OrderedDict()  # Dict: {no_terminal: [reglas]}
-        self.start_symbol = None   # Símbolo inicial
-        self.ignored_tokens = []   # Tokens a ignorar
-        self.production_list = []  # Lista numerada de producciones para reducciones
-
-class Production:
-    """Clase para representar una producción individual"""
-    def __init__(self, left, right, number):
-        self.left = left    # Lado izquierdo (no-terminal)
-        self.right = right  # Lado derecho (lista de símbolos)
-        self.number = number  # Número de producción
-    
-    def __repr__(self):
-        return f"{self.number}: {self.left} → {' '.join(self.right)}"
+from lr0_automaton import Grammar, Production
 
 class YaparLexer:
     """Lexer para tokenizar el archivo YAPar carácter por carácter"""
