@@ -32,7 +32,7 @@ class Stack:
 
 def tokenize_postfix(postfix_expr):
     """
-    Tokeniza la expresión postfix. Agrupa literales entre comillas, incluyendo escape de comillas simples.
+    Tokeniza la expresión postfix. Agrupa correctamente los literales con escapes como '\'' y '\\'.
     """
     tokens = []
     i = 0
@@ -41,8 +41,8 @@ def tokenize_postfix(postfix_expr):
             j = i + 1
             literal = ""
             while j < len(postfix_expr):
-                if postfix_expr[j] == "\\" and j + 1 < len(postfix_expr) and postfix_expr[j + 1] == "'":
-                    literal += "\\'"
+                if postfix_expr[j] == "\\" and j + 1 < len(postfix_expr):
+                    literal += "\\" + postfix_expr[j + 1]
                     j += 2
                 elif postfix_expr[j] == "'":
                     break
@@ -53,16 +53,21 @@ def tokenize_postfix(postfix_expr):
                 tokens.append("'" + literal + "'")
                 i = j + 1
             else:
-                # Literal sin cierre
                 tokens.append("'" + literal)
                 i = j
-        elif postfix_expr[i] == '\\' and i + 1 < len(postfix_expr):
-            tokens.append(postfix_expr[i] + postfix_expr[i + 1])
+        #elif postfix_expr[i] == '\\' and i + 1 < len(postfix_expr):
+         #   tokens.append(postfix_expr[i] + postfix_expr[i + 1])
+          #  i += 2
+        elif postfix_expr[i] == '\\' \
+             and i + 1 < len(postfix_expr) \
+             and postfix_expr[i+1] in {'n','t'}:
+            tokens.append(postfix_expr[i] + postfix_expr[i+1])
             i += 2
         else:
             tokens.append(postfix_expr[i])
             i += 1
     return tokens
+
 
 
 def build_expression_tree(postfix_expr):
@@ -104,6 +109,8 @@ def build_expression_tree(postfix_expr):
             if token == "'\\''":
                 # Manejo de la secuencia de escape para comillas simples
                 node = Node("'")
+            elif token == "\\":
+                node = Node("\\")
 
             # Si el token está entre comillas, se trata como literal
             elif token.startswith("'") and token.endswith("'"):

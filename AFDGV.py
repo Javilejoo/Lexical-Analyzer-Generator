@@ -32,14 +32,14 @@ def dibujar_AFD(afd, filename="afd", token_type=None):
 
         nombre = estado_a_nombre[estado]
 
-        # 🧠 Obtener el token del diccionario (puede ser None)
+        # Obtener el token del diccionario (puede ser None)
         token = ""
         if es_aceptacion and isinstance(token_type, dict):
             token = token_type.get(estado, "")
         elif es_aceptacion and isinstance(token_type, str):
             token = token_type  # para el caso de AFD individuales
 
-        # 📌 Crear label
+        # Crear label
         if isinstance(estado, frozenset):
             tooltip = f"{set(estado)}" if len(estado) < 4 else f"Conjunto con {len(estado)} estados"
             label = f"{nombre}\\n{token}" if token else nombre

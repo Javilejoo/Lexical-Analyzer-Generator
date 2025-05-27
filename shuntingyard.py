@@ -44,11 +44,11 @@ def expand_operators(expression):
                 expanded_expression.append(')')
             else:
                 raise ValueError("Error: '?' debe estar precedido por un operando.")
-        elif char == '\\':
-            if i + 1 < len(expression):
-                expanded_expression.append(f'\\{expression[i+1]}')
-                i += 2
-                continue
+        #elif char == '\\':
+         #   if i + 1 < len(expression):
+          #      expanded_expression.append(f'\\{expression[i+1]}')
+           #     i += 2
+            #    continue
         elif char == "'":
             j = i + 1
             while j < len(expression) and expression[j] != "'":
@@ -125,7 +125,8 @@ literal_to_placeholder = {
     ".": "\ue006",
     "|": "\ue007",
     "?": "\ue008",
-    "\\'": "\ue00b", 
+    "\\'": "\ue00b",
+    "\\": "\ue00c",
 }
     
     
@@ -201,20 +202,3 @@ def convert_infix_to_postfix(expresion):
     # Restaurar los literales a su forma original (con comillas)
     postfix = restore_literal_tokens(postfix)
     return postfix
-
-if __name__ == '__main__':
-    expresion = "((((' '|'!'|'\"'|'#'|'$'|'%'|'&'|'\''|'('|')'|'*'|'+'|','|'-'|'.'|'/'))*))#"
-    #shutting yard a expresion para convertila a postfix
-    postfix = convert_infix_to_postfix(expresion)
-    print("Infix:", expresion)
-    print("Postfix:", postfix)
-    expresion = "a|b|'+'"
-    #shutting yard a expresion para convertila a postfix
-    postfix = convert_infix_to_postfix(expresion)
-    print("Infix:", expresion)
-    print("Postfix:", postfix)
-    expresion = "a|'\\''"
-    #shutting yard a expresion para convertila a postfix
-    postfix = convert_infix_to_postfix(expresion)
-    print("Infix:", expresion)
-    print("Postfix:", postfix)
