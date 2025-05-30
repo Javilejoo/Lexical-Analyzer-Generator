@@ -1,8 +1,11 @@
 """
 Implementación de la tabla SLR(1) y el parser sintáctico.
+Este archivo combina la definición de la tabla SLR y las funciones para construirla.
 Core de la solución sin funcionalidades extra.
 """
 
+import os
+import sys
 from enum import Enum
 from collections import defaultdict
 
@@ -208,6 +211,157 @@ def build_slr_table(automaton, follow_sets):
     
     return table
 
+def build_slr_table_for_lr0(states, grammar, follow_sets):
+    """
+    Construye la tabla SLR(1) a partir de los estados del autómata LR(0) y los conjuntos FOLLOW.
+    
+    Args:
+        states: Lista de estados del autómata LR(0)
+        grammar: Gramática utilizada
+        follow_sets: Diccionario con conjuntos FOLLOW
+        
+    Returns:
+        SLRTable: Tabla SLR(1) construida
+    """
+    # Crear un adaptador para la gramática
+    class GrammarAdapter:
+        def __init__(self, grammar):
+            self.grammar = grammar
+            self.tokens = grammar.terminals
+            self.non_terminals = grammar.non_terminals
+    
+    # Crear un adaptador para el autómata
+    class AutomatonAdapter:
+        def __init__(self, states, grammar_adapter):
+            self.states = states
+            self.grammar = grammar_adapter
+    
+    # Adaptar la gramática y el autómata
+    grammar_adapter = GrammarAdapter(grammar)
+    automaton = AutomatonAdapter(states, grammar_adapter)
+    
+    # Crear la tabla SLR
+    table = SLRTable(automaton, grammar_adapter)
+    
+    print(f"\nConstruyendo tabla SLR(1) para {len(states)} estados...")
+    
+    # Mapeo de estados por número para facilitar búsquedas
+    state_map = {state.number: i for i, state in enumerate(states)}
+    
+    # Para cada estado en el autómata
+    for i, state in enumerate(states):
+        state_id = i  # Usar el índice como ID para la tabla SLR
+        
+        # 1. Procesar ítems para acciones SHIFT
+        for item in state.items:
+            if not item.is_complete and item.next_symbol in grammar.terminals:
+                # Ítem A → α•aβ donde a es terminal
+                terminal = item.next_symbol
+                target_state_number = state.transitions.get(terminal)
+                
+                if target_state_number is not None:
+                    # Mapear el número de estado a su índice en la lista
+                    target_state_id = state_map[target_state_number]
+                    action = Action(ActionType.SHIFT, target_state_id)
+                    table.set_action(state_id, terminal, action)
+        
+        # 2. Procesar ítems completos para acciones REDUCE
+        for item in state.items:
+            if item.is_complete:
+                # Ítem A → α•
+                if item.production.number == 0:
+                    # S' → S• - acción ACCEPT
+                    action = Action(ActionType.ACCEPT)
+                    table.set_action(state_id, '$', action)
+                else:
+                    # A → α• - acción REDUCE
+                    left_symbol = item.left
+                    if left_symbol in follow_sets:
+                        for terminal in follow_sets[left_symbol]:
+                            action = Action(ActionType.REDUCE, item.production.number)
+                            table.set_action(state_id, terminal, action)
+        
+        # 3. Procesar transiciones para tabla GOTO (excluyendo la gramática aumentada)
+        for symbol, target_state_number in state.transitions.items():
+            # Solo incluir en GOTO los no terminales que no sean el símbolo inicial aumentado (producción 0)
+            # Para identificar el símbolo inicial aumentado, verificamos si aparece en la producción 0
+            is_augmented_symbol = False
+            if len(grammar.production_list) > 0:
+                augmented_prod = grammar.production_list[0]
+                if symbol == augmented_prod.left:
+                    is_augmented_symbol = True
+                    
+            if symbol in grammar.non_terminals and not is_augmented_symbol:
+                # Mapear el número de estado a su índice en la lista
+                target_state_id = state_map[target_state_number]
+                table.set_goto(state_id, symbol, target_state_id)
+    
+    print(f"Tabla construida con {len(table.action_table)} entradas ACTION y {len(table.goto_table)} entradas GOTO")
+    
+    # Reportar conflictos
+    if table.has_conflicts():
+        table.print_conflicts()
+    else:
+        print("[OK] No se encontraron conflictos")
+    
+    return table
+
+def print_table_ascii(table):
+    """Imprime la tabla SLR de forma legible usando solo caracteres ASCII"""
+    print("\n=== TABLA SLR(1) ===")
+    
+    # Obtener todos los terminales y no-terminales (excluyendo el símbolo inicial aumentado para GOTO)
+    terminals = sorted(table.grammar.tokens) + ['$']
+    
+    # Identificar el símbolo inicial aumentado para excluirlo
+    augmented_symbol = None
+    if hasattr(table.grammar, 'grammar') and hasattr(table.grammar.grammar, 'production_list'):
+        # Si es un GrammarAdapter
+        if len(table.grammar.grammar.production_list) > 0:
+            augmented_prod = table.grammar.grammar.production_list[0]
+            augmented_symbol = augmented_prod.left
+    
+    # Filtrar los no terminales para excluir el símbolo inicial aumentado
+    non_terminals = []
+    for nt in sorted(table.grammar.non_terminals):
+        if nt != augmented_symbol:
+            non_terminals.append(nt)
+    
+    # Encabezado
+    print(f"{'':<8}", end="")
+    for terminal in terminals:
+        print(f"{terminal:<8}", end="")
+    print("|", end="")
+    for nt in non_terminals:
+        print(f"{nt:<12}", end="")
+    print()
+    
+    # Separador
+    print("-" * (8 + len(terminals) * 8 + 1 + len(non_terminals) * 12))
+    
+    # Filas de la tabla
+    for state_id in range(len(table.automaton.states)):
+        print(f"{state_id:<8}", end="")
+        
+        # Tabla ACTION
+        for terminal in terminals:
+            action = table.get_action(state_id, terminal)
+            if action.type != ActionType.ERROR:
+                print(f"{str(action):<8}", end="")
+            else:
+                print(f"{'':<8}", end="")
+        
+        print("|", end="")
+        
+        # Tabla GOTO
+        for nt in non_terminals:
+            goto_state = table.get_goto(state_id, nt)
+            if goto_state is not None:
+                print(f"{goto_state:<12}", end="")
+            else:
+                print(f"{'':<12}", end="")
+        print()
+
 class SLRParser:
     """
     Parser SLR(1) que utiliza la tabla para analizar cadenas.
@@ -215,7 +369,7 @@ class SLRParser:
     def __init__(self, table):
         self.table = table
         self.grammar = table.grammar
-    
+
     def parse(self, tokens):
         """
         Analiza una cadena de tokens usando el algoritmo SLR(1).
