@@ -1,14 +1,14 @@
 {
     "terminals": [
-        "TIMES",
-        "RPAREN",
-        "PLUS",
         "LPAREN",
-        "ID"
+        "TIMES",
+        "PLUS",
+        "ID",
+        "RPAREN"
     ],
     "non_terminals": [
-        "term",
         "expression",
+        "term",
         "factor"
     ],
     "productions": {
