@@ -1,0 +1,48 @@
+{
+    "terminals": [
+        "TIMES",
+        "RPAREN",
+        "PLUS",
+        "LPAREN",
+        "ID"
+    ],
+    "non_terminals": [
+        "term",
+        "expression",
+        "factor"
+    ],
+    "productions": {
+        "expression": [
+            [
+                "expression",
+                "PLUS",
+                "term"
+            ],
+            [
+                "term"
+            ]
+        ],
+        "term": [
+            [
+                "term",
+                "TIMES",
+                "factor"
+            ],
+            [
+                "factor"
+            ]
+        ],
+        "factor": [
+            [
+                "LPAREN",
+                "expression",
+                "RPAREN"
+            ],
+            [
+                "ID"
+            ]
+        ]
+    },
+    "start_symbol": "expression",
+    "ignored_tokens": []
+}

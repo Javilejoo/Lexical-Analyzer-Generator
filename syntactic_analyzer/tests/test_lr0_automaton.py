@@ -3,9 +3,88 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yapar_parser import parse_yapar_file, augment_grammar, Production
+from yapar_parser2 import parse_yalp_file
 from lr0_automaton import (Item, State, LR0Automaton, print_item_details, print_state_details,
-                          closure, goto, build_lr0_automaton, analyze_automaton, print_closure_steps)
+                          closure, goto, build_lr0_automaton, analyze_automaton, print_closure_steps,export_automaton_to_dot)
+
+from collections import OrderedDict
+
+# Crear una clase Production compatible con la versión anterior
+class Production:
+    def __init__(self, left, right, number):
+        self.left = left    # Lado izquierdo (no-terminal)
+        self.right = right  # Lado derecho (lista de símbolos)
+        self.number = number  # Número de producción
+    
+    def __repr__(self):
+        return f"{self.number}: {self.left} -> {' '.join(self.right)}"
+
+# Función para convertir gramática de yapar_parser2 al formato esperado por LR0Automaton
+def convert_grammar(grammar):
+    result = type('Grammar', (), {})()
+    result.tokens = list(grammar.terminals)
+    result.non_terminals = list(grammar.non_terminals)
+    result.productions = OrderedDict()
+    result.start_symbol = grammar.start_symbol
+    result.ignored_tokens = list(grammar.ignored_tokens)
+    result.production_list = []
+    
+    # Convertir producciones
+    number = 0
+    for non_terminal, rules in grammar.productions.items():
+        result.productions[non_terminal] = rules
+        for rule in rules:
+            prod = Production(non_terminal, rule, number)
+            result.production_list.append(prod)
+            number += 1
+    
+    return result
+
+# Función para aumentar la gramática
+def augment_grammar(grammar):
+    """Aumenta la gramática agregando S' -> S para el análisis SLR"""
+    if not grammar or not grammar.start_symbol:
+        return
+    
+    # Crear nuevo símbolo inicial
+    new_start = grammar.start_symbol + "'"
+    
+    # Agregar nueva producción al inicio
+    grammar.productions[new_start] = [[grammar.start_symbol]]
+    
+    # Mover a la primera posición en el OrderedDict
+    new_productions = OrderedDict()
+    new_productions[new_start] = grammar.productions[new_start]
+    for key, value in grammar.productions.items():
+        if key != new_start:
+            new_productions[key] = value
+    grammar.productions = new_productions
+    
+    # Actualizar listas
+    grammar.non_terminals.insert(0, new_start)
+    grammar.start_symbol = new_start
+    
+    # Recrear lista de producciones numeradas
+    grammar.production_list = []
+    number = 0
+    for non_terminal, rules in grammar.productions.items():
+        for rule in rules:
+            prod = Production(non_terminal, rule, number)
+            grammar.production_list.append(prod)
+            number += 1
+    
+    print(f"\nGramática aumentada con: {new_start} -> {grammar.production_list[0].right[0]}")
+
+# Función para visualizar el autómata LR(0)
+def visualize_lr0_automaton(automaton):
+    print("\n=== Autómata LR(0) ===")
+    
+    for state_id, state in automaton.states.items():
+        print(f"\nEstado {state_id}:")
+        print_state_details(state)
+        
+        for symbol, next_state_id in state.transitions.items():
+            print(f"  {symbol} -> Estado {next_state_id}")
 
 def test_item_creation():
     """Prueba la creación y manipulación de ítems LR(0)"""
@@ -76,7 +155,7 @@ def test_with_real_grammar():
     print("\n=== TEST: Gramática Real (slr-1.yalp) ===")
     
     # Parsear gramática
-    grammar = parse_yapar_file("../resources/slr-1.yalp")
+    grammar = parse_yalp_file("../resources/slr-1.yalp")
     if not grammar:
         print("Error: No se pudo parsear la gramática")
         return False
@@ -270,7 +349,7 @@ def test_build_automaton_slr1():
     print("\n=== TEST: Construcción de Autómata (slr-1.yalp) ===")
     
     # Parsear y aumentar la gramática
-    grammar = parse_yapar_file("../resources/slr-1.yalp")
+    grammar = parse_yalp_file("../resources/slr-1.yalp")
     if not grammar:
         print("Error: No se pudo parsear slr-1.yalp")
         return False
@@ -357,7 +436,7 @@ def test_multiple_grammars():
         
         try:
             # Parsear y aumentar
-            grammar = parse_yapar_file(f"../resources/{filename}")
+            grammar = parse_yalp_file(f"../resources/{filename}")
             if not grammar:
                 print(f"Error: No se pudo parsear {filename}")
                 results.append((filename, False, "Parse error"))
@@ -398,7 +477,7 @@ def test_state_details():
     print("\n=== TEST: Detalles de Estados ===")
     
     # Usar una gramática simple
-    grammar = parse_yapar_file("../resources/slr-1.yalp")
+    grammar = parse_yalp_file("../resources/slr-1.yalp")
     if not grammar:
         return False
     
@@ -509,12 +588,169 @@ def main_complex():
         status = "✓ PASÓ" if success else "✗ FALLÓ"
         print(f"{test_name:<35} {status}")
     
-    print(f"\nTotal: {passed}/{total} pruebas pasaron")
+
+def test_visualize_automaton():
+    """Muestra los Items LR(0), los estados y las transiciones del autómata en el formato solicitado"""
+    print("\n" + "="*80)
+    print("VISUALIZACIÓN DEL AUTÓMATA LR(0)")
+    print("="*80)
     
-    return all(success for _, success in results)
+    # Parsear gramática y crear autómata
+    grammar_file = "../resources/slr-1.yalp"  # Puedes cambiar a otra gramática si lo deseas
+    grammar_obj = parse_yalp_file(grammar_file)
+    if not grammar_obj:
+        print(f"Error: No se pudo parsear la gramática {grammar_file}")
+        return False
+    
+    # Convertir y aumentar la gramática
+    grammar = convert_grammar(grammar_obj)
+    augment_grammar(grammar)
+    
+    # Construir el autómata LR(0)
+    automaton = build_lr0_automaton(grammar)
+    
+    # Mostrar información detallada de los items
+    print("\n" + "="*80)
+    print("ITEMS LR(0)")
+    print("="*80)
+    
+    all_items = set()
+    for state in automaton.states:
+        all_items.update(state.items)
+    
+    for item in sorted(all_items, key=str):
+        print(item)
+    
+    # Mostrar información detallada de los estados
+    print("\n" + "="*80)
+    print("ESTADOS LR(0)")
+    print("="*80)
+    
+    for state in automaton.states:
+        print(f"\nESTADO {state.id}:")
+        for item in sorted(state.items, key=str):
+            print(f"  {item}")
+    
+    # Mostrar transiciones
+    print("\n" + "="*80)
+    print("TRANSICIONES (GOTO)")
+    print("="*80)
+    
+    for state in automaton.states:
+        for symbol, target in sorted(state.transitions.items()):
+            print(f"delta (q{state.id}, '{symbol}') --> q{target}")
+    
+    return True
+
+def visualize_lr0_automaton_with_graphviz():
+    """Visualiza el autómata LR(0) usando Graphviz con alta calidad"""
+    try:
+        import graphviz
+    except ImportError:
+        print("Error: La biblioteca 'graphviz' no está instalada.")
+        print("Instale con: pip install graphviz")
+        return False
+    
+    print("\n" + "="*80)
+    print("VISUALIZACIÓN GRÁFICA DEL AUTÓMATA LR(0) CON GRAPHVIZ (ALTA CALIDAD)")
+    print("="*80)
+    
+    # Parsear gramática y crear autómata
+    grammar_file = "../resources/slr-1.yalp"  # Puedes cambiar a otra gramática si lo deseas
+    grammar_obj = parse_yalp_file(grammar_file)
+    if not grammar_obj:
+        print(f"Error: No se pudo parsear la gramática {grammar_file}")
+        return False
+    
+    # Convertir y aumentar la gramática
+    grammar = convert_grammar(grammar_obj)
+    augment_grammar(grammar)
+    
+    # Construir el autómata LR(0)
+    automaton = build_lr0_automaton(grammar)
+    
+    # Crear un grafo dirigido con Graphviz
+    dot = graphviz.Digraph('LR0_Automaton', comment='Autómata LR(0)', format='png')
+    
+    # Configurar atributos del grafo para alta calidad
+    dot.attr(rankdir='LR')
+    dot.attr('graph', dpi='300', size='12,8')
+    dot.attr('node', shape='box', style='rounded,filled', fillcolor='white', fontname='Arial', fontsize='10')
+    dot.attr('edge', fontname='Arial', fontsize='9')
+    
+    # Agregar nodos (estados)
+    for state in automaton.states:
+        # Crear etiqueta para el nodo con los ítems del estado
+        if state.id == automaton.initial_state_id:
+            label = f"Estado {state.id} (Inicial)\n\n"
+        else:
+            label = f"Estado {state.id}\n\n"
+        
+        # Agrupar los ítems por símbolo no terminal (lado izquierdo)
+        items_by_nt = {}
+        for item in sorted(state.items, key=str):
+            nt = item.left
+            if nt not in items_by_nt:
+                items_by_nt[nt] = []
+            items_by_nt[nt].append(str(item))
+        
+        # Agregar ítems agrupados por no terminal a la etiqueta
+        for nt, items_list in sorted(items_by_nt.items()):
+            label += f"{nt}:\n"
+            for item in items_list:
+                label += f"  {item}\n"
+            label += "\n"
+        
+        # Eliminar el último salto de línea extra
+        if label.endswith("\n\n"):
+            label = label[:-1]
+        
+        # Estilo del nodo
+        node_attrs = {
+            'label': label.strip()
+        }
+        
+        # Resaltar el estado inicial
+        if state.id == automaton.initial_state_id:
+            node_attrs['style'] = 'filled'
+            node_attrs['fillcolor'] = 'lightblue'
+        
+        
+        # Agregar el nodo al grafo
+        dot.node(f'q{state.id}', **node_attrs)
+    
+    # Agregar aristas (transiciones)
+    for state in automaton.states:
+        for symbol, target in sorted(state.transitions.items()):
+            # Estilo especial para terminales y no terminales
+            edge_attrs = {}
+            if symbol in grammar.tokens:
+                edge_attrs['color'] = 'blue'
+                edge_attrs['fontcolor'] = 'blue'
+                edge_attrs['label'] = f"'{symbol}'"
+            else:
+                edge_attrs['color'] = 'darkgreen'
+                edge_attrs['fontcolor'] = 'darkgreen'
+                edge_attrs['label'] = symbol
+                
+            dot.edge(f'q{state.id}', f'q{target}', **edge_attrs)
+    
+    # Guardar y renderizar el grafo con alta calidad
+    output_file = "lr0_automaton_hq"
+    dot.render(output_file, format='png', cleanup=True)
+    
+    print(f"\nGrafo del autómata LR(0) en alta calidad generado como: {output_file}.png")
+    
+    return True
 
 if __name__ == "__main__":
-  main_simple()
-
-  success = main_complex()
-  sys.exit(0 if success else 1)
+    # Ejecutar el visualizador de autómata con representación textual
+    test_visualize_automaton()
+    
+    # Ejecutar el visualizador con Graphviz
+    visualize_lr0_automaton_with_graphviz()
+    
+    # Comentar o descomentar según lo que quieras probar
+    # main_simple()
+    # success = main_complex()
+    # sys.exit(0 if success else 1)
