@@ -18,7 +18,7 @@ class Production:
         self.number = number  # Número de producción
     
     def __repr__(self):
-        return f"{self.number}: {self.left} → {' '.join(self.right)}"
+        return f"{self.number}: {self.left} -> {' '.join(self.right)}"
 
 class Item:
     """
@@ -100,13 +100,13 @@ class Item:
         after = ' '.join(self.after_dot)
         
         if before and after:
-            return f"{self.left} → {before} • {after}"
+            return f"{self.left} -> {before} . {after}"
         elif before:
-            return f"{self.left} → {before} •"
+            return f"{self.left} -> {before} ."
         elif after:
-            return f"{self.left} → • {after}"
+            return f"{self.left} -> . {after}"
         else:
-            return f"{self.left} → •"
+            return f"{self.left} -> ."
     
     def __str__(self):
         return self.__repr__()
@@ -424,7 +424,7 @@ def build_lr0_automaton(grammar):
                 # Agregar la transición
                 automaton.add_transition(current_state_id, symbol, target_state_id)
                 
-                print(f"  Transición con '{symbol}' → Estado {target_state_id}")
+                print(f"  Transición con '{symbol}' -> Estado {target_state_id}")
                 
                 # Si es un estado nuevo, agregarlo a la cola
                 if target_state_id not in processed_states:
@@ -625,3 +625,18 @@ def print_state_details(state):
         print("  Transiciones:")
         for symbol, target in state.transitions.items():
             print(f"    {symbol} → Estado {target}")
+
+def export_automaton_to_dot(automaton, filename="automata_LR0.dot"):
+    with open(filename, "w") as f:
+        f.write("digraph LR0_Automaton {\n")
+        f.write("  rankdir=LR;\n")
+        
+        for state in automaton.states:
+            label = f"q{state.id}\\n" + "\\n".join(str(item) for item in sorted(state.items, key=str))
+            f.write(f'  q{state.id} [label="{label}", shape=box];\n')
+        
+        for state in automaton.states:
+            for symbol, target in state.transitions.items():
+                f.write(f'  q{state.id} -> q{target} [label="{symbol}"];\n')
+        
+        f.write("}\n")

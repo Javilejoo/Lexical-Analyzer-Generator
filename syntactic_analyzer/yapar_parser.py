@@ -377,4 +377,4 @@ def augment_grammar(grammar):
             grammar.production_list.append(prod)
             number += 1
     
-    print(f"\nGramática aumentada con: {new_start} → {grammar.production_list[0].right[0]}")
+    print(f"\nGramática aumentada con: {new_start} -> {grammar.production_list[0].right[0]}")
