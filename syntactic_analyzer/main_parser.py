@@ -15,6 +15,9 @@ from lr0_automaton2 import (
 # Importar componentes de SLR
 from slr_table import build_slr_table_for_lr0, print_table_ascii
 
+# Importar interfaz léxica modular
+from lexical_interface import LexicalInterface
+
 # Función para calcular conjuntos FIRST
 def calculate_first_sets(grammar):
     """Calcula los conjuntos FIRST para todos los símbolos de la gramática."""
@@ -145,24 +148,32 @@ def main():
     # Configurar el parser de argumentos
     parser = argparse.ArgumentParser(description="Analizador sintáctico LR(0) integrado")
     parser.add_argument(
-        "yalp_file", 
-        nargs="?", 
-        help="Archivo YALP con la definición de la gramática"
+        "--yalp-file", 
+        "-y",
+        required=True,
+        help="Archivo YALP con la definición de la gramática (requerido)"
+    )
+    parser.add_argument(
+        "--tokens-file", 
+        "-t",
+        required=True,
+        help="Archivo con tokens de salida del analizador léxico (requerido)"
     )
     args = parser.parse_args()
     
-    # Obtener el archivo YALP
-    if args.yalp_file:
-        yalp_file = args.yalp_file
-    else:
-        # Archivo de ejemplo por defecto
-        yalp_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "slr-1.yalp")
-        print(f"Usando archivo de gramática por defecto: {yalp_file}")
-    
-    # Verificar si el archivo existe
-    if not os.path.exists(yalp_file):
-        print(f"Error: No se encuentra el archivo {yalp_file}")
+    # Verificar si el archivo YALP existe
+    if not os.path.exists(args.yalp_file):
+        print(f"Error: No se encuentra el archivo de gramática {args.yalp_file}")
         sys.exit(1)
+    
+    # Verificar si el archivo de tokens existe
+    if not os.path.exists(args.tokens_file):
+        print(f"Error: No se encuentra el archivo de tokens {args.tokens_file}")
+        sys.exit(1)
+    
+    # Usar el archivo YALP especificado
+    yalp_file = args.yalp_file
+    print(f"Usando archivo de gramática: {yalp_file}")
     
     # Directorio para guardar el JSON generado
     resources_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
@@ -305,22 +316,34 @@ def main():
     global_grammar = grammar
     global_slr_table = slr_table
     
+    # Cargar tokens usando la interfaz léxica
+    print("\n" + "=" * 80)
+    print("CARGANDO TOKENS DEL ANALIZADOR LÉXICO")
+    print("=" * 80)
+    
+    # Crear interfaz léxica
+    lexical_interface = LexicalInterface()
+    
+    print(f"Leyendo tokens desde: {args.tokens_file}")
+    tokens_inputs = lexical_interface.load_tokens_from_file(args.tokens_file)
+    
+    if not tokens_inputs:
+        print(f"Error: No se pudieron cargar tokens válidos desde {args.tokens_file}")
+        sys.exit(1)
+    
     # Retornar la gramática y la tabla para uso externo
-    return grammar, slr_table
+    return grammar, slr_table, tokens_inputs
 
 if __name__ == "__main__":
     # Ejecutar el análisis principal de la gramática
-    grammar, slr_table = main()
+    grammar, slr_table, tokens_inputs = main()
     
     # Importar el parser LR y ejecutar prueba con tokens
     from parsing_LR import LRParser
     
-    # Tokens de prueba como se especificó
-    tokens_inputs = ['ID', 'PLUS', 'ID', 'TIMES', 'LPAREN', 'ID', 'PLUS', 'ID', 'RPAREN']
-    
-    # Ejecutar el analizador sintáctico LR con los tokens predefinidos
+    # Ejecutar el analizador sintáctico LR con los tokens desde archivo
     print("\n" + "="*80)
-    print("PRUEBA DE PARSING LR CON TOKENS DE ENTRADA ESPECÍFICOS")
+    print("PRUEBA DE PARSING LR CON TOKENS DEL ANALIZADOR LÉXICO")
     print("="*80)
     
     print(f"Tokens de entrada: {tokens_inputs}")
