@@ -1,7 +1,5 @@
 import os
 import sys
-import json
-from collections import OrderedDict
 import argparse
 
 # Importar componentes necesarios del analizador sintáctico
@@ -10,13 +8,12 @@ from yapar_parser2 import parse_yalp_file, parse_yalp_to_json
 
 # Importar componentes de LR(0)
 from lr0_automaton2 import (
-    Grammar, Production, Item, State,
     load_grammar_from_json, augment_grammar, create_initial_items,
-    closure, goto, build_lr0_automaton, print_items_set, export_to_graphviz
+    build_lr0_automaton, print_items_set, export_to_graphviz
 )
 
 # Importar componentes de SLR
-from slr_table import ActionType, Action, SLRTable, build_slr_table_for_lr0, print_table_ascii
+from slr_table import build_slr_table_for_lr0, print_table_ascii
 
 # Función para calcular conjuntos FIRST
 def calculate_first_sets(grammar):
