@@ -139,6 +139,10 @@ def print_sets_table(sets, title):
     for symbol, symbols_set in sorted(sets.items()):
         print(f"{symbol:15}: {{{', '.join(sorted(symbols_set))}}}") 
 
+# Variables globales para almacenar la gramática y la tabla SLR
+global_grammar = None
+global_slr_table = None
+
 # Función principal
 def main():
     # Configurar el parser de argumentos
@@ -298,6 +302,36 @@ def main():
     slr_table = build_slr_table_for_lr0(states, grammar, follow_sets)
     # Usar nuestra función personalizada para imprimir la tabla sin caracteres Unicode
     print_table_ascii(slr_table)
+    
+    # Guardar la gramática y la tabla SLR como variables globales para su uso posterior
+    global global_grammar, global_slr_table
+    global_grammar = grammar
+    global_slr_table = slr_table
+    
+    # Retornar la gramática y la tabla para uso externo
+    return grammar, slr_table
 
 if __name__ == "__main__":
-    main()
+    # Ejecutar el análisis principal de la gramática
+    grammar, slr_table = main()
+    
+    # Importar el parser LR y ejecutar prueba con tokens
+    from parsing_LR import LRParser
+    
+    # Tokens de prueba como se especificó
+    tokens_inputs = ['ID', 'PLUS', 'ID', 'TIMES', 'LPAREN', 'ID', 'PLUS', 'ID', 'RPAREN']
+    
+    # Ejecutar el analizador sintáctico LR con los tokens predefinidos
+    print("\n" + "="*80)
+    print("PRUEBA DE PARSING LR CON TOKENS DE ENTRADA ESPECÍFICOS")
+    print("="*80)
+    
+    print(f"Tokens de entrada: {tokens_inputs}")
+    print("\nEjecutando análisis sintáctico...")
+    
+    # Crear el parser LR y ejecutar el análisis
+    parser = LRParser(slr_table, grammar)
+    success, message = parser.parse(tokens_inputs, verbose=True)
+    
+    print("\nResultado:", "ACEPTADA" if success else "RECHAZADA")
+    print("Mensaje:", message)
