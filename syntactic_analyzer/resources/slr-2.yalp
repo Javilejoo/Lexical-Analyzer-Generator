@@ -16,7 +16,7 @@
 IGNORE WS
 
 general : 
-  general SEMICOLON expression 
+  general expression SEMICOLON
   | expression SEMICOLON
   ;
 expression:

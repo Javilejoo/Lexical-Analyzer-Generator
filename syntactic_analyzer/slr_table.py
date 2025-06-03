@@ -9,6 +9,13 @@ import sys
 from enum import Enum
 from collections import defaultdict
 
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    print("Pandas no está instalado. Se usará formato de texto plano.")
+    PANDAS_AVAILABLE = False
+
 class ActionType(Enum):
     """Tipos de acciones en la tabla SLR"""
     SHIFT = "shift"
@@ -115,40 +122,80 @@ class SLRTable:
         terminals = sorted(self.grammar.tokens) + ['$']
         non_terminals = sorted(self.grammar.non_terminals)
         
-        # Encabezado
-        print(f"{'Estado':<8}", end="")
-        for terminal in terminals:
-            print(f"{terminal:<8}", end="")
-        print("│", end="")
-        for nt in non_terminals:
-            print(f"{nt:<12}", end="")
-        print()
-        
-        # Separador
-        print("─" * (8 + len(terminals) * 8 + 1 + len(non_terminals) * 12))
-        
-        # Filas de la tabla
-        for state_id in range(len(self.automaton.states)):
-            print(f"{state_id:<8}", end="")
+        if PANDAS_AVAILABLE:
+            # Crear un DataFrame para la tabla ACTION
+            action_data = []
+            for state_id in range(len(self.automaton.states)):
+                row = {'Estado': state_id}
+                for terminal in terminals:
+                    action = self.get_action(state_id, terminal)
+                    if action.type != ActionType.ERROR:
+                        row[terminal] = str(action)
+                    else:
+                        row[terminal] = ''
+                action_data.append(row)
             
-            # Tabla ACTION
+            # Crear un DataFrame para la tabla GOTO
+            goto_data = []
+            for state_id in range(len(self.automaton.states)):
+                row = {'Estado': state_id}
+                for nt in non_terminals:
+                    goto_state = self.get_goto(state_id, nt)
+                    if goto_state is not None:
+                        row[nt] = goto_state
+                    else:
+                        row[nt] = ''
+                goto_data.append(row)
+            
+            # Crear DataFrames
+            action_df = pd.DataFrame(action_data)
+            goto_df = pd.DataFrame(goto_data)
+            
+            # Mostrar tablas
+            pd.set_option('display.max_columns', None)  # Mostrar todas las columnas
+            pd.set_option('display.width', 1000)  # Ancho amplio para evitar wrapping
+            
+            print("\nTabla ACTION:")
+            print(action_df.set_index('Estado'))
+            
+            print("\nTabla GOTO:")
+            print(goto_df.set_index('Estado'))
+        else:
+            # Versión original si pandas no está disponible
+            # Encabezado
+            print(f"{'Estado':<8}", end="")
             for terminal in terminals:
-                action = self.get_action(state_id, terminal)
-                if action.type != ActionType.ERROR:
-                    print(f"{str(action):<8}", end="")
-                else:
-                    print(f"{'·':<8}", end="")
-            
+                print(f"{terminal:<8}", end="")
             print("│", end="")
-            
-            # Tabla GOTO
             for nt in non_terminals:
-                goto_state = self.get_goto(state_id, nt)
-                if goto_state is not None:
-                    print(f"{goto_state:<12}", end="")
-                else:
-                    print(f"{'·':<12}", end="")
+                print(f"{nt:<12}", end="")
             print()
+            
+            # Separador
+            print("─" * (8 + len(terminals) * 8 + 1 + len(non_terminals) * 12))
+            
+            # Filas de la tabla
+            for state_id in range(len(self.automaton.states)):
+                print(f"{state_id:<8}", end="")
+                
+                # Tabla ACTION
+                for terminal in terminals:
+                    action = self.get_action(state_id, terminal)
+                    if action.type != ActionType.ERROR:
+                        print(f"{str(action):<8}", end="")
+                    else:
+                        print(f"{'·':<8}", end="")
+                
+                print("│", end="")
+                
+                # Tabla GOTO
+                for nt in non_terminals:
+                    goto_state = self.get_goto(state_id, nt)
+                    if goto_state is not None:
+                        print(f"{goto_state:<12}", end="")
+                    else:
+                        print(f"{'·':<12}", end="")
+                print()
 
 def build_slr_table(automaton, follow_sets):
     """
@@ -174,6 +221,11 @@ def build_slr_table(automaton, follow_sets):
             if not item.is_complete and item.next_symbol in automaton.grammar.tokens:
                 # Ítem A → α•aβ donde a es terminal
                 terminal = item.next_symbol
+                
+                # Ignorar tokens de whitespace (WS)
+                if terminal == 'WS':
+                    continue
+                    
                 target_state = state.transitions.get(terminal)
                 
                 if target_state is not None:
@@ -257,6 +309,11 @@ def build_slr_table_for_lr0(states, grammar, follow_sets):
             if not item.is_complete and item.next_symbol in grammar.terminals:
                 # Ítem A → α•aβ donde a es terminal
                 terminal = item.next_symbol
+                
+                # Ignorar tokens de whitespace (WS)
+                if terminal == 'WS':
+                    continue
+                    
                 target_state_number = state.transitions.get(terminal)
                 
                 if target_state_number is not None:
@@ -283,18 +340,43 @@ def build_slr_table_for_lr0(states, grammar, follow_sets):
         
         # 3. Procesar transiciones para tabla GOTO (excluyendo la gramática aumentada)
         for symbol, target_state_number in state.transitions.items():
-            # Solo incluir en GOTO los no terminales que no sean el símbolo inicial aumentado (producción 0)
-            # Para identificar el símbolo inicial aumentado, verificamos si aparece en la producción 0
-            is_augmented_symbol = False
-            if len(grammar.production_list) > 0:
-                augmented_prod = grammar.production_list[0]
-                if symbol == augmented_prod.left:
-                    is_augmented_symbol = True
-                    
-            if symbol in grammar.non_terminals and not is_augmented_symbol:
+            # Solo incluir en GOTO los no terminales (incluyendo los de las reducciones)
+            if symbol in grammar.non_terminals:
                 # Mapear el número de estado a su índice en la lista
                 target_state_id = state_map[target_state_number]
                 table.set_goto(state_id, symbol, target_state_id)
+                
+        # 4. Asegurarse de que hay transiciones GOTO para todos los no terminales relevantes
+        # Revisar las producciones para encontrar todos los posibles símbolos no terminales
+        for prod in grammar.production_list:
+            # Si este estado puede reducir por esta producción
+            has_complete_item = any(
+                item.is_complete and item.production.number == prod.number
+                for item in state.items
+            )
+            if has_complete_item:
+                # Necesitamos asegurar que hay una transición GOTO para el símbolo izquierdo
+                left_symbol = prod.left
+                
+                # Verificamos todos los estados que podrían recibir este no terminal
+                for next_state in states:
+                    # Si hay algún ítem que espere este no terminal
+                    for next_item in next_state.items:
+                        if not next_item.is_complete and next_item.next_symbol == left_symbol:
+                            # Debe existir una transición GOTO
+                            next_state_id = state_map[next_state.number]
+                            # Buscar la transición en el automaton
+                            for dest_number in state.transitions.values():
+                                dest_id = state_map[dest_number]
+                                # Si hay transición, añadir a la tabla GOTO
+                                if dest_id not in [table.get_goto(state_id, nt) for nt in grammar.non_terminals]:
+                                    # Verificar que realmente este estado espera el símbolo
+                                    should_add = any(
+                                        not i.is_complete and i.next_symbol == left_symbol
+                                        for i in states[dest_id].items
+                                    )
+                                    if should_add:
+                                        table.set_goto(state_id, left_symbol, dest_id)
     
     print(f"Tabla construida con {len(table.action_table)} entradas ACTION y {len(table.goto_table)} entradas GOTO")
     
@@ -327,40 +409,80 @@ def print_table_ascii(table):
         if nt != augmented_symbol:
             non_terminals.append(nt)
     
-    # Encabezado
-    print(f"{'':<8}", end="")
-    for terminal in terminals:
-        print(f"{terminal:<8}", end="")
-    print("|", end="")
-    for nt in non_terminals:
-        print(f"{nt:<12}", end="")
-    print()
-    
-    # Separador
-    print("-" * (8 + len(terminals) * 8 + 1 + len(non_terminals) * 12))
-    
-    # Filas de la tabla
-    for state_id in range(len(table.automaton.states)):
-        print(f"{state_id:<8}", end="")
+    if PANDAS_AVAILABLE:
+        # Crear un DataFrame para la tabla ACTION
+        action_data = []
+        for state_id in range(len(table.automaton.states)):
+            row = {'Estado': state_id}
+            for terminal in terminals:
+                action = table.get_action(state_id, terminal)
+                if action.type != ActionType.ERROR:
+                    row[terminal] = str(action)
+                else:
+                    row[terminal] = ''
+            action_data.append(row)
         
-        # Tabla ACTION
+        # Crear un DataFrame para la tabla GOTO
+        goto_data = []
+        for state_id in range(len(table.automaton.states)):
+            row = {'Estado': state_id}
+            for nt in non_terminals:
+                goto_state = table.get_goto(state_id, nt)
+                if goto_state is not None:
+                    row[nt] = goto_state
+                else:
+                    row[nt] = ''
+            goto_data.append(row)
+        
+        # Crear DataFrames
+        action_df = pd.DataFrame(action_data)
+        goto_df = pd.DataFrame(goto_data)
+        
+        # Mostrar tablas
+        pd.set_option('display.max_columns', None)  # Mostrar todas las columnas
+        pd.set_option('display.width', 1000)  # Ancho amplio para evitar wrapping
+        
+        print("\nTabla ACTION:")
+        print(action_df.set_index('Estado'))
+        
+        print("\nTabla GOTO:")
+        print(goto_df.set_index('Estado'))
+    else:
+        # Versión original con ASCII si pandas no está disponible
+        # Encabezado
+        print(f"{'':<8}", end="")
         for terminal in terminals:
-            action = table.get_action(state_id, terminal)
-            if action.type != ActionType.ERROR:
-                print(f"{str(action):<8}", end="")
-            else:
-                print(f"{'':<8}", end="")
-        
+            print(f"{terminal:<8}", end="")
         print("|", end="")
-        
-        # Tabla GOTO
         for nt in non_terminals:
-            goto_state = table.get_goto(state_id, nt)
-            if goto_state is not None:
-                print(f"{goto_state:<12}", end="")
-            else:
-                print(f"{'':<12}", end="")
+            print(f"{nt:<12}", end="")
         print()
+        
+        # Separador
+        print("-" * (8 + len(terminals) * 8 + 1 + len(non_terminals) * 12))
+        
+        # Filas de la tabla
+        for state_id in range(len(table.automaton.states)):
+            print(f"{state_id:<8}", end="")
+            
+            # Tabla ACTION
+            for terminal in terminals:
+                action = table.get_action(state_id, terminal)
+                if action.type != ActionType.ERROR:
+                    print(f"{str(action):<8}", end="")
+                else:
+                    print(f"{'':<8}", end="")
+            
+            print("|", end="")
+            
+            # Tabla GOTO
+            for nt in non_terminals:
+                goto_state = table.get_goto(state_id, nt)
+                if goto_state is not None:
+                    print(f"{goto_state:<12}", end="")
+                else:
+                    print(f"{'':<12}", end="")
+            print()
 
 class SLRParser:
     """

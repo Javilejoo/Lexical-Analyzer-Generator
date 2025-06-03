@@ -4,9 +4,67 @@ Este módulo maneja la lectura y procesamiento de tokens desde archivos de salid
 """
 
 import os
-import re
 from typing import List
 from dataclasses import dataclass
+
+
+class CustomMatch:
+    """Clase que imita la funcionalidad básica de re.match para el patrón específico requerido"""
+    
+    def __init__(self, groups):
+        self.groups = groups
+        
+    def group(self, index):
+        """Retorna el grupo capturado en el índice especificado"""
+        if index == 0:
+            return self.groups[0]  # Texto completo (no usado actualmente)
+        return self.groups[index]  # Grupo capturado
+
+
+def custom_match(pattern, text):
+    """Implementación personalizada para simular re.match con el patrón '^(\w+)\s+\'(.*)\'$'"""
+    # Esta función solo implementa el patrón específico, no es un reemplazo general para re.match
+    
+    # Verificar que el texto no esté vacío
+    if not text:
+        return None
+    
+    # Paso 1: Capturar el tipo de token (\w+)
+    token_type = ""
+    i = 0
+    while i < len(text) and (text[i].isalnum() or text[i] == '_'):
+        token_type += text[i]
+        i += 1
+    
+    if not token_type:  # Si no hay tipo de token, no hay match
+        return None
+    
+    # Paso 2: Verificar y consumir espacios en blanco (\s+)
+    if i >= len(text) or not text[i].isspace():
+        return None
+    
+    while i < len(text) and text[i].isspace():
+        i += 1
+    
+    # Paso 3: Verificar comilla simple inicial (')
+    if i >= len(text) or text[i] != "'":
+        return None
+    
+    i += 1  # Avanzar después de la comilla
+    
+    # Paso 4: Capturar el valor hasta la comilla final
+    value = ""
+    start_value = i
+    
+    # Buscar la comilla de cierre al final
+    if not text.endswith("'"):
+        return None
+    
+    # Extraer el valor entre comillas
+    value = text[start_value:len(text)-1]
+    
+    # Crear objeto similar a re.match con los grupos capturados
+    return CustomMatch([text, token_type, value])
 
 
 @dataclass
@@ -55,7 +113,7 @@ class TokenFileReader:
                         continue
                     
                     # Parsear línea: TOKEN_TYPE      'value'
-                    match = re.match(r'^(\w+)\s+\'(.*)\'$', line)
+                    match = custom_match(None, line)
                     if match:
                         token_type = match.group(1)
                         value = match.group(2)
@@ -96,7 +154,7 @@ class TokenFileReader:
                         continue
                     
                     # Parsear línea: TOKEN_TYPE      'value'
-                    match = re.match(r'^(\w+)\s+\'(.*)\'$', line)
+                    match = custom_match(None, line)
                     if match:
                         token_type = match.group(1)
                         value = match.group(2)

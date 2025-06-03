@@ -1,0 +1,78 @@
+{
+    "terminals": [
+        "RPAREN",
+        "WS",
+        "DIV",
+        "ID",
+        "LPAREN",
+        "SEMICOLON",
+        "PLUS",
+        "NUMBER",
+        "MINUS",
+        "TIMES"
+    ],
+    "non_terminals": [
+        "factor",
+        "general",
+        "term",
+        "expression"
+    ],
+    "productions": {
+        "general": [
+            [
+                "general",
+                "expression",
+                "SEMICOLON"
+            ],
+            [
+                "expression",
+                "SEMICOLON"
+            ]
+        ],
+        "expression": [
+            [
+                "expression",
+                "PLUS",
+                "term"
+            ],
+            [
+                "expression",
+                "MINUS",
+                "term"
+            ],
+            [
+                "term"
+            ]
+        ],
+        "term": [
+            [
+                "term",
+                "TIMES",
+                "factor"
+            ],
+            [
+                "term",
+                "DIV",
+                "factor"
+            ],
+            [
+                "factor"
+            ]
+        ],
+        "factor": [
+            [
+                "LPAREN",
+                "expression",
+                "RPAREN"
+            ],
+            [
+                "ID"
+            ],
+            [
+                "NUMBER"
+            ]
+        ]
+    },
+    "start_symbol": "general",
+    "ignored_tokens": []
+}

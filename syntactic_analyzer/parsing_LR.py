@@ -74,8 +74,9 @@ class LRParser:
             if action.type == ActionType.SHIFT:
                 # Accion de desplazamiento (shift)
                 if verbose:
-                    print(f"ACCION s{action.value} con simbolo '{current_token}'")
-                    print(f"-> shift a estado {action.value}")
+                    #print(f"ACCION s{action.value} con simbolo '{current_token}'")
+                    #print(f"-> shift a estado {action.value}")
+                    pass
                 
                 # Guardar el simbolo y nuevo estado en la pila
                 stack.append(current_token)
@@ -87,39 +88,45 @@ class LRParser:
             elif action.type == ActionType.REDUCE:
                 # Accion de reduccion (reduce)
                 # En algunas implementaciones, los indices de las reglas de produccion
-                # pueden no coincidir con sus indices en la lista de producciones
+                # En una tabla SLR correctamente construida, el valor de la acción reduce (r#) debería
+                # ser el número de producción exacto en la gramática
                 
-                # Primero intentamos buscar por su posicion en la lista
-                try:
+                # Buscar la producción por su número en la gramática
+                production = None
+                
+                # Primero, buscar por número exacto de producción
+                for prod in self.grammar.production_list:
+                    if hasattr(prod, 'number') and prod.number == action.value:
+                        production = prod
+                        break
+                
+                # Si no se encontró, buscar por índice en la lista
+                if production is None and action.value < len(self.grammar.production_list):
                     production = self.grammar.production_list[action.value]
-                except IndexError:
-                    # Si no funciona, intentamos por el numero de produccion indicado en la tabla
-                    found = False
-                    # Intenta buscar la produccion con el indice action.value
-                    for prod in self.grammar.production_list:
-                        # Buscar algun atributo identificador como 'id', 'index' o comparar con str(action.value)
-                        if hasattr(prod, 'id') and prod.id == action.value:
+                
+                # Si aún no se encuentra, buscar por otros métodos
+                if production is None:
+                    for i, prod in enumerate(self.grammar.production_list):
+                        # También buscar por índice implícito
+                        if i == action.value:
                             production = prod
-                            found = True
                             break
-                        elif str(prod) and str(action.value) in str(prod):
+                        # O por algún atributo id si existe
+                        elif hasattr(prod, 'id') and prod.id == action.value:
                             production = prod
-                            found = True
                             break
-                    
-                    if not found:
-                        # Como ultimo recurso, usar la produccion con indice 0 si existe
-                        if action.value < len(self.grammar.production_list):
-                            production = self.grammar.production_list[action.value]
-                        else:
-                            error_msg = f"Error: No se encontro produccion con indice {action.value}"
-                            if verbose:
-                                print(f"ERROR: {error_msg}")
-                            return False, error_msg
+                
+                # Si todavía no se encontró, reportar error
+                if production is None:
+                    error_msg = f"Error: No se encontró producción para la acción r{action.value}"
+                    if verbose:
+                        print(f"ERROR: {error_msg}")
+                    return False, error_msg
                 
                 if verbose:
-                    print(f"ACCION r{action.value} con produccion {production}")
-                    print(f"-> reduce por {production.left} -> {' '.join(production.right)}")
+                    #print(f"ACCION r{action.value} con produccion {production}")
+                    #print(f"-> reduce por {production.left} -> {' '.join(production.right)}")
+                    pass
 
                 
                 # Remover 2*len(right) elementos de la pila (simbolo y estado por cada simbolo)
@@ -144,7 +151,8 @@ class LRParser:
                 stack.append(goto_state)
                 
                 if verbose:
-                    print(f"-> GOTO({current_state}, {production.left}) = {goto_state}")
+                    #print(f"-> GOTO({current_state}, {production.left}) = {goto_state}")
+                    pass
                 
             elif action.type == ActionType.ACCEPT:
                 # Accion de aceptacion (accept)
@@ -168,7 +176,7 @@ class LRParser:
                         stack_str += f"{item} "
                     else:  # Es un simbolo
                         stack_str += f"{item} "
-                print(f"Pila actual: {stack_str}")
+                #print(f"tual: {stack_str}")
                 
                 # Mostrar los simbolos restantes
                 remaining = " ".join(input_tokens[index:])
