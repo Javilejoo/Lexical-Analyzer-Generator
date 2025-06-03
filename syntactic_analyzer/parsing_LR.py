@@ -54,7 +54,7 @@ class LRParser:
         # Mostrar tokens de entrada
         if verbose:
             print("\n========== ANALISIS SINTACTICO LR ==========")
-            print("Tokens de entrada:", input_tokens[:-1])  # No mostrar $ en la salida
+            #print("Tokens de entrada:", input_tokens[:-1])  # No mostrar $ en la salida
             print("="*45)
         
         # Bucle principal del algoritmo
@@ -67,7 +67,8 @@ class LRParser:
             
             if verbose:
                 # Mostrar estado actual y entrada restante
-                print(f"\n[Estado {current_state}] ", end="")
+                #print(f"\n[Estado {current_state}] ", end="")
+                pass
             
             # Procesar segun el tipo de accion
             if action.type == ActionType.SHIFT:
@@ -171,7 +172,7 @@ class LRParser:
                 
                 # Mostrar los simbolos restantes
                 remaining = " ".join(input_tokens[index:])
-                print(f"Entrada restante: {remaining}")
+                #print(f"Entrada restante: {remaining}")
 
 def parse_input(slr_table, grammar, input_tokens, verbose=True):
     """
@@ -209,7 +210,7 @@ def run_test_parser(grammar, slr_table, input_tokens=None):
     print("PRUEBA DE ANALISIS SINTACTICO LR")
     print("="*80)
     
-    print(f"Tokens de entrada: {input_tokens}")
+    #print(f"Tokens de entrada: {input_tokens}")
     
     # Ejecutar el analisis
     success, message = parse_input(slr_table, grammar, input_tokens)

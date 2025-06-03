@@ -346,7 +346,7 @@ if __name__ == "__main__":
     print("PRUEBA DE PARSING LR CON TOKENS DEL ANALIZADOR LÉXICO")
     print("="*80)
     
-    print(f"Tokens de entrada: {tokens_inputs}")
+    #print(f"Tokens de entrada: {tokens_inputs}")
     print("\nEjecutando análisis sintáctico...")
     
     # Crear el parser LR y ejecutar el análisis

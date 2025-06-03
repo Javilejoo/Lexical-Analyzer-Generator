@@ -11,7 +11,14 @@
 %token DIV
 %token NUMBER
 %token LPAREN RPAREN
+%token SEMICOLON
+%token WS
+IGNORE WS
 
+general : 
+  general SEMICOLON expression 
+  | expression SEMICOLON
+  ;
 expression:
     expression PLUS term
   | expression MINUS term
