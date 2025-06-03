@@ -109,8 +109,9 @@ class YalpParser:
                 if i < len(content) and content[i] == ':':
                     i += 1  # Skip ':'
                     i = self.process_production_rule(content, i, identifier)
-                else:
-                    i += 1  # Move to next character if not a production
+                # Do NOT increment i here; process_production_rule returns the correct next index
+                # else:
+                #     i += 1  # (Removed: this caused skipping the first char of next non-terminal)
             else:
                 i += 1  # Skip other characters
     
