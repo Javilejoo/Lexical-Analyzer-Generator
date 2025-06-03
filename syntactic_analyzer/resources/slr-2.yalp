@@ -15,10 +15,10 @@
 %token WS
 IGNORE WS
 
-general : 
-  general expression SEMICOLON
-  | expression SEMICOLON
-  ;
+general :
+   expression SEMICOLON
+  | general expression SEMICOLON
+;
 expression:
     expression PLUS term
   | expression MINUS term

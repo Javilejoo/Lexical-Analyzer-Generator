@@ -1,21 +1,16 @@
 {
     "terminals": [
-        "DIV",
-        "SEMICOLON",
-        "TIMES",
-        "RPAREN",
         "WS",
-        "ID",
-        "MINUS",
         "LPAREN",
+        "RPAREN",
+        "TIMES",
         "PLUS",
         "NUMBER"
     ],
     "non_terminals": [
-        "term",
-        "expression",
         "general",
-        "factor"
+        "term",
+        "expression"
     ],
     "productions": {
         "general": [
@@ -31,14 +26,9 @@
         ],
         "expression": [
             [
-                "expression",
+                "term",
                 "PLUS",
-                "term"
-            ],
-            [
-                "expression",
-                "MINUS",
-                "term"
+                "expression"
             ],
             [
                 "term"
@@ -46,30 +36,17 @@
         ],
         "term": [
             [
-                "term",
+                "NUMBER",
                 "TIMES",
-                "factor"
+                "term"
             ],
             [
-                "term",
-                "DIV",
-                "factor"
+                "NUMBER"
             ],
-            [
-                "factor"
-            ]
-        ],
-        "factor": [
             [
                 "LPAREN",
                 "expression",
                 "RPAREN"
-            ],
-            [
-                "ID"
-            ],
-            [
-                "NUMBER"
             ]
         ]
     },

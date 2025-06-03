@@ -39,6 +39,8 @@
 %token DIV
 %token PLUS
 %token TIMES
+%token WS
+IGNORE WS
 
 p:
     t

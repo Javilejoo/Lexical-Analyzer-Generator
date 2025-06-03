@@ -10,7 +10,6 @@ try:
     from graphviz import Digraph
 except ImportError:
     print("La biblioteca 'graphviz' no está instalada. Instale con: pip install graphviz")
-    print("También necesita instalar GraphViz: https://graphviz.org/download/")
     Digraph = None
 
 # Importar yapar_parser2

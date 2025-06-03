@@ -212,7 +212,7 @@ def extraer_trailer_char_por_char(yalex_code):
 if len(sys.argv) > 1:
     yalex = sys.argv[1]
 else:
-    yalex = 'output/yalexs/slr-2.yal'
+    yalex = 'output/yalexs/slr-4.yal'
 
 # Llamamos a yalex_parser una sola vez y guardamos los resultados
 header, expresiones, reglas, trailer = yalex_parser(yalex)

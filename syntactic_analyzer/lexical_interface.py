@@ -86,10 +86,6 @@ class TokenFileReader:
     IGNORED_TOKENS = {
         'WS',           # Whitespace
         'WHITESPACE',   # Whitespace alternativo
-        'COMMENT',      # Comentarios
-        'NEWLINE',      # Saltos de línea
-        'TAB',          # Tabulaciones
-        'SPACE',        # Espacios
     }
     
     @staticmethod

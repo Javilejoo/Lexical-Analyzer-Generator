@@ -1,0 +1,158 @@
+{
+    "terminals": [
+        "LPAREN",
+        "ASSIGNOP",
+        "WS",
+        "RPAREN",
+        "ID",
+        "EQ",
+        "NUMBER",
+        "SEMICOLON",
+        "PLUS",
+        "TIMES",
+        "DIV",
+        "LT",
+        "MINUS"
+    ],
+    "non_terminals": [
+        "r",
+        "y",
+        "t",
+        "p",
+        "q",
+        "z",
+        "j",
+        "m",
+        "f",
+        "w",
+        "v",
+        "a",
+        "e"
+    ],
+    "productions": {
+        "p": [
+            [
+                "t"
+            ]
+        ],
+        "t": [
+            [
+                "m",
+                "q"
+            ],
+            [
+                "m"
+            ]
+        ],
+        "q": [
+            [
+                "SEMICOLON",
+                "m",
+                "q"
+            ],
+            [
+                "SEMICOLON",
+                "m"
+            ]
+        ],
+        "m": [
+            [
+                "a"
+            ]
+        ],
+        "a": [
+            [
+                "ID",
+                "ASSIGNOP",
+                "e"
+            ]
+        ],
+        "e": [
+            [
+                "x",
+                "z"
+            ],
+            [
+                "x"
+            ]
+        ],
+        "z": [
+            [
+                "LT",
+                "x"
+            ],
+            [
+                "EQ",
+                "x",
+                "x",
+                "r",
+                "w"
+            ],
+            [
+                "r"
+            ]
+        ],
+        "w": [
+            [
+                "y",
+                "w"
+            ],
+            [
+                "y"
+            ]
+        ],
+        "y": [
+            [
+                "PLUS",
+                "r"
+            ],
+            [
+                "MINUS",
+                "r"
+            ]
+        ],
+        "r": [
+            [
+                "f",
+                "v"
+            ],
+            [
+                "f"
+            ]
+        ],
+        "v": [
+            [
+                "j",
+                "v"
+            ],
+            [
+                "j"
+            ]
+        ],
+        "j": [
+            [
+                "TIMES",
+                "f"
+            ],
+            [
+                "DIV",
+                "f"
+            ]
+        ],
+        "f": [
+            [
+                "LPAREN",
+                "e",
+                "RPAREN"
+            ],
+            [
+                "NUMBER"
+            ],
+            [
+                "ID"
+            ]
+        ]
+    },
+    "start_symbol": "p",
+    "ignored_tokens": []
+}

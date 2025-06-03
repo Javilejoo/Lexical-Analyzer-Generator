@@ -2,19 +2,23 @@ header:
 
 
 EXPRESIONES ENCONTRADAS:
-let delim = ["\s\t\n"]
+let delim = [' ''\t''\n']
 let ws = delim+
 let letter = ['A'-'Z''a'-'z']
+let str = ('_')*
 let digit = ['0'-'9']
 let digits = digit+
-let id = letter(letter|digit)*
-let number = digits(.digits)?('E'['+''-']?digits)?
+let id = letter(letter|str|digit)*
+let number = digits('.'digits)?('E'['+''-']?digits)?
 
 REGLAS ENCONTRADAS:
-ws        { return WHITESPACE }
-| ';'         { return SEMICOLON }
+ws          { return WS }
 | id        { return ID }
 | number    { return NUMBER }
+| ';'       { return SEMICOLON }
+| ':='      { return ASSIGNOP }
+| '<'       { return LT }
+| '='       { return EQ }
 | '+'       { return PLUS }
 | '-'       { return MINUS }
 | '*'       { return TIMES }
