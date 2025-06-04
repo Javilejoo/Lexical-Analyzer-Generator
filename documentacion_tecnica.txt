@@ -1,0 +1,275 @@
+================================
+DOCUMENTACIÓN TÉCNICA - LEXICAL-ANALYZER-GENERATOR
+================================
+
+1. DESCRIPCIÓN GENERAL
+================================
+
+El proyecto Lexical-Analyzer-Generator es una implementación completa de un generador de analizadores léxicos y sintácticos para el procesamiento de lenguajes. Este sistema toma archivos de definición en formatos YALEX (.yal) para el análisis léxico y YALP (.yalp) para el análisis sintáctico, y genera analizadores capaces de procesar texto de acuerdo con las gramáticas especificadas.
+
+2. ARQUITECTURA DEL SISTEMA
+================================
+
+El proyecto está organizado en dos componentes principales interconectados:
+
+1. ANALIZADOR LÉXICO: Procesa archivos YALEX para generar autómatas finitos deterministas (AFD) que reconocen tokens.
+2. ANALIZADOR SINTÁCTICO: Procesa archivos YALP para implementar un analizador SLR(1) que verifica la estructura sintáctica del código.
+
+3. COMPONENTE 1: ANALIZADOR LÉXICO
+================================
+
+3.1. DESCRIPCIÓN
+----------------
+El analizador léxico convierte definiciones de tokens en un autómata finito determinista (AFD) capaz de reconocer patrones en texto de entrada.
+
+3.2. ARCHIVOS PRINCIPALES
+------------------------
+- yalex_parser.py: Parser para archivos YALEX, procesa definiciones y reglas.
+- ERtoAFD2.py: Convierte expresiones regulares a AFD mediante algoritmos de construcción de árboles y subconjuntos.
+- shuntingyard.py: Implementa el algoritmo Shunting Yard para convertir expresiones infix a postfix.
+- subconjuntos.py: Implementa el algoritmo de subconjuntos para convertir AFN a AFD.
+- AFD_minimo.py: Realiza la minimización de AFD.
+- nullableVisitor.py, firstPosVisitor.py, lastPosVisitor.py, followPosVisitor.py: Implementan los algoritmos para la construcción del árbol sintáctico de expresiones regulares.
+
+3.3. FLUJO DE TRABAJO
+--------------------
+1. PROCESAMIENTO DEL ARCHIVO YALEX:
+   - Extracción de definiciones con yalex_parser.py
+   - Eliminación de comentarios
+   - Extracción de secciones (header, definiciones, reglas, trailer)
+
+2. CONSTRUCCIÓN DE EXPRESIONES REGULARES:
+   - Expansión de definiciones recursivas
+   - Manejo de rangos y caracteres especiales
+   - Conversión a formato infix normalizado
+
+3. GENERACIÓN DE AFD:
+   - Construcción del árbol sintáctico
+   - Cálculo de nullable, firstpos, lastpos, followpos
+   - Construcción del AFD directo desde el árbol
+   - Minimización del AFD resultante
+
+4. SALIDAS:
+   - Árbol sintáctico visualizado como imagen
+   - AFD completo visualizado
+   - AFD minimizado visualizado
+   - Tablas de transición y conjuntos de estados
+
+3.4. DETALLES TÉCNICOS DEL YALEX PARSER
+--------------------------------------
+El parser de YALEX está implementado en yalex_parser.py y procesa archivos en el siguiente formato:
+
+{header}
+let <definiciones>
+rule tokens =
+    <reglas>
+{trailer}
+
+- Header: Código que se incluye al inicio del analizador generado.
+- Definiciones: Mapean identificadores a expresiones regulares.
+- Reglas: Asocian patrones con acciones.
+- Trailer: Código que se incluye al final del analizador generado.
+
+El procesamiento se realiza caracter por caracter con las siguientes funciones principales:
+- delete_comments(): Elimina comentarios entre (* y *)
+- extraer_header(): Extrae el código del encabezado
+- extraer_expresiones_char_por_char(): Procesa las definiciones let
+- extraer_reglas_char_por_char(): Extrae las reglas después de "rule tokens ="
+- extraer_trailer_char_por_char(): Extrae el código del final
+
+3.5. CONSTRUCCIÓN DEL ÁRBOL SINTÁCTICO Y AFD
+------------------------------------------
+El proceso se implementa principalmente en ERtoAFD2.py:
+
+1. CONVERSIÓN DE EXPRESIONES:
+   - Se pasa de infix a postfix usando el algoritmo Shunting Yard.
+   - Se implementa en shuntingyard.py.
+
+2. CONSTRUCCIÓN DEL ÁRBOL:
+   - Se crea un árbol sintáctico a partir de la expresión en postfix.
+   - Se usan clases como Node, Concat, Union, Star.
+
+3. CÁLCULO DE PROPIEDADES:
+   - nullable: Determina si un nodo puede generar la cadena vacía.
+   - firstpos: Conjunto de posiciones que pueden ocurrir primero.
+   - lastpos: Conjunto de posiciones que pueden ocurrir último.
+   - followpos: Posiciones que pueden seguir a una posición dada.
+
+4. GENERACIÓN DEL AFD:
+   - Se usa el algoritmo de construcción directa.
+   - Se usa el algoritmo de subconjuntos para generar el AFD.
+   - Se realiza minimización del AFD con AFD_minimo.py.
+
+4. COMPONENTE 2: ANALIZADOR SINTÁCTICO
+================================
+
+4.1. DESCRIPCIÓN
+----------------
+El analizador sintáctico implementa el algoritmo SLR(1) para procesar gramáticas libres de contexto y verificar si una secuencia de tokens sigue las reglas gramaticales especificadas.
+
+4.2. ARCHIVOS PRINCIPALES
+------------------------
+- syntax_analyzer.py: Punto de entrada principal para el analizador sintáctico.
+- yapar_parser.py: Parser para archivos de gramática YALP.
+- lr0_automaton.py: Construye el autómata LR(0) desde una gramática.
+- slr_table.py: Genera tablas SLR(1) y realiza el análisis sintáctico.
+- first_follow.py: Calcula los conjuntos FIRST y FOLLOW necesarios para el análisis SLR.
+- lexical_interface.py: Interface para integrar el analizador léxico con el sintáctico.
+
+4.3. CARACTERÍSTICAS
+-------------------
+- Construcción automática de tablas SLR(1)
+- Cálculo de conjuntos FIRST y FOLLOW
+- Detección automática de conflictos (shift-reduce, reduce-reduce)
+- Análisis paso a paso detallado
+- Soporte para múltiples gramáticas
+- Integración con el analizador léxico
+
+4.4. FORMATO DE ARCHIVO YALP
+--------------------------
+El formato YALP define la gramática para el análisis sintáctico:
+
+%token ID PLUS TIMES LPAREN RPAREN
+
+%%
+
+expression:
+    expression PLUS term
+  | term
+;
+
+term:
+    term TIMES factor
+  | factor
+;
+
+factor:
+    LPAREN expression RPAREN
+  | ID
+;
+
+4.5. ALGORITMO SLR(1)
+-------------------
+El analizador SLR(1) funciona de la siguiente manera:
+
+1. CONSTRUCCIÓN DE AUTÓMATA LR(0):
+   - Se crea el conjunto de elementos LR(0) para cada estado.
+   - Se calculan las transiciones entre estados.
+
+2. CÁLCULO DE CONJUNTOS FIRST Y FOLLOW:
+   - FIRST(X): Conjunto de terminales que pueden aparecer primero en cadenas derivadas de X.
+   - FOLLOW(A): Conjunto de terminales que pueden seguir a un no terminal A.
+
+3. CONSTRUCCIÓN DE TABLA SLR:
+   - Acción: Qué hacer cuando se ve un terminal (shift, reduce, accept, error).
+   - Goto: A qué estado ir después de reducir con un no terminal.
+
+4. ANÁLISIS DE CADENAS:
+   - Se usa un autómata de pila.
+   - Se procesa la entrada token por token.
+   - Se realizan acciones según la tabla SLR.
+
+4.6. MANEJO DE CONFLICTOS
+------------------------
+El analizador detecta y reporta dos tipos de conflictos:
+- Conflictos Shift-Reduce: Cuando no está claro si desplazar o reducir.
+- Conflictos Reduce-Reduce: Cuando hay múltiples reglas aplicables.
+
+5. INTEGRACIÓN Y FLUJO COMPLETO
+================================
+
+5.1. PROCESO DE COMPILACIÓN
+--------------------------
+1. El usuario proporciona un archivo YALEX con definiciones de tokens.
+2. Se genera un analizador léxico específico para esas definiciones.
+3. El usuario proporciona un archivo YALP con la gramática.
+4. Se construye un analizador sintáctico SLR(1).
+5. El sistema procesa archivos fuente, conviertiéndolos en tokens y verificando su estructura sintáctica.
+
+5.2. REQUISITOS DEL SISTEMA
+-------------------------
+- Python 3.7 o superior
+- Biblioteca Graphviz para visualizaciones
+- Sin otras dependencias externas
+
+5.3. USO BÁSICO
+-------------
+# Procesamiento de archivo YALEX
+python yalex_parser.py archivo.yal
+
+# Generación de autómata
+python ERtoAFD2.py
+
+# Análisis sintáctico
+python syntactic_analyzer/syntax_analyzer.py syntactic_analyzer/resources/slr-2.yalp output/tokens_output.txt
+
+6. DIRECTORIOS IMPORTANTES
+================================
+- /output: Contiene archivos generados, AFDs, árboles, y otros resultados.
+- /syntactic_analyzer/resources: Contiene gramáticas de ejemplo en formato YALP.
+- /__pycache__: Archivos compilados de Python (generados automáticamente).
+
+7. FUNCIONALIDADES AVANZADAS
+================================
+
+7.1. EXPANSIÓN RECURSIVA DE DEFINICIONES
+--------------------------------------
+El sistema puede manejar definiciones anidadas y recursivas en archivos YALEX. Este proceso está implementado en expand_definitions_recursivo() que resuelve las referencias entre definiciones.
+
+7.2. SIMULACIÓN DE AFD
+--------------------
+La simulación permite probar cadenas contra el autómata generado para verificar su aceptación. Se realiza un seguimiento del estado actual mientras se procesan los caracteres de entrada uno por uno.
+
+7.3. MINIMIZACIÓN DE AFD
+---------------------
+El algoritmo de minimización de AFD implementa el método de particiones para reducir el número de estados manteniendo el mismo lenguaje reconocido.
+
+7.4. DETECCIÓN DE CONFLICTOS SLR
+------------------------------
+La detección de conflictos es crucial para determinar si una gramática es adecuada para análisis SLR. Se implementa durante la construcción de la tabla SLR.
+
+7.5. VISUALIZACIÓN GRÁFICA
+------------------------
+El sistema utiliza Graphviz para generar representaciones visuales de:
+- Árboles de expresión regular
+- Autómatas finitos (AFD completo y minimizado)
+- Autómatas LR(0) para análisis sintáctico
+
+8. DETALLES TÉCNICOS ADICIONALES
+================================
+
+8.1. ALGORITMO DE CONSTRUCCIÓN DIRECTA
+------------------------------------
+La construcción directa del AFD se basa en el árbol sintáctico decorado con:
+- Posición única para cada hoja
+- Nullable para cada nodo
+- FirstPos para cada nodo
+- LastPos para cada nodo
+- FollowPos para cada posición
+
+8.2. TABLA DE TRANSICIONES DEL AFD
+--------------------------------
+La tabla de transiciones define:
+- Estados del AFD (conjuntos de posiciones)
+- Transiciones entre estados para cada símbolo del alfabeto
+- Estados de aceptación
+
+8.3. TABLA SLR(1)
+---------------
+La tabla SLR(1) contiene:
+- Acciones para cada estado y terminal (shift, reduce, accept, error)
+- Transiciones goto para cada estado y no terminal
+- Detalles de resolución de conflictos (si existen)
+
+9. CONCLUSIÓN
+================================
+
+El proyecto Lexical-Analyzer-Generator proporciona una implementación robusta y completa para el análisis léxico y sintáctico de lenguajes formales. La arquitectura modular permite su uso tanto en entornos educativos como en aplicaciones prácticas para el desarrollo de compiladores y procesadores de lenguajes.
+
+La integración entre los analizadores léxico y sintáctico permite un flujo completo de compilación, desde la definición de tokens hasta la verificación de la estructura gramatical del código fuente.
+
+Este proyecto implementa conceptos fundamentales de la teoría de compiladores, incluyendo:
+- Expresiones regulares y autómatas finitos
+- Gramáticas libres de contexto
+- Análisis sintáctico ascendente LR
+- Optimización de autómatas
