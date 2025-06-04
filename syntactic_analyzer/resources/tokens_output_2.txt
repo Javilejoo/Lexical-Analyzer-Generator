@@ -1,5 +1,0 @@
-ID              'x'
-PLUS            '+'
-ID              'y'
-TIMES           '*'
-ID              'z'

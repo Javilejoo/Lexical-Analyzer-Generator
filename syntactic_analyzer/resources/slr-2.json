@@ -1,21 +1,21 @@
 {
     "terminals": [
         "RPAREN",
-        "WS",
         "DIV",
-        "ID",
+        "TIMES",
+        "NUMBER",
+        "MINUS",
         "LPAREN",
         "SEMICOLON",
         "PLUS",
-        "NUMBER",
-        "MINUS",
-        "TIMES"
+        "WS",
+        "ID"
     ],
     "non_terminals": [
         "factor",
         "general",
-        "term",
-        "expression"
+        "expression",
+        "term"
     ],
     "productions": {
         "general": [
